@@ -6,6 +6,8 @@ import (
   "unicode/utf8"
 )
 
+const EOF rune = 0
+
 type stateFn func() stateFn
 
 type tokenInfo struct {
@@ -21,6 +23,9 @@ type lexer struct {
 }
 
 func (l *lexer) peek() rune {
+  if l.pos >= len(l.input) {
+    return EOF
+  }
   r, _ := utf8.DecodeRuneInString(l.input[l.pos:])
   // XXX error detection
   return r
@@ -32,8 +37,15 @@ func (l *lexer) advance() {
 }
 
 func (l *lexer) emit(token int) {
+  if l.pos <= l.start {
+    return
+  }
   s := l.input[l.start:l.pos]
   l.tokens <- tokenInfo{raw: s, id: token}
+  l.start = l.pos
+}
+
+func (l *lexer) discard() {
   l.start = l.pos
 }
 
@@ -53,6 +65,9 @@ func (l *lexer) stateIdentifier() stateFn {
     case unicode.IsSpace(r):
       l.emit(tokIdentifier)
       return l.stateSpace
+    case r == EOF:
+      l.emit(tokIdentifier)
+      return nil
     default:
       l.advance()
     }
@@ -64,6 +79,7 @@ func (l *lexer) stateSpace() stateFn {
     l.advance()
   }
   // We don't emit anything for spaces.
+  l.discard()
   return l.stateIdentifier
 }
 
