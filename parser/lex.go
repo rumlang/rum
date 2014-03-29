@@ -2,12 +2,13 @@ package parser
 
 import (
   "log"
-  "strings"
+  "unicode"
+  "unicode/utf8"
 )
 
 type stateFn func() stateFn
 
-type item struct {
+type tokenInfo struct {
   raw string
   id int
 }
@@ -16,7 +17,7 @@ type lexer struct {
   input string
   start int
   pos int
-  items chan item
+  tokens chan tokenInfo
 }
 
 func (l *lexer) peek() rune {
@@ -26,37 +27,33 @@ func (l *lexer) peek() rune {
 }
 
 func (l *lexer) advance() {
-  r, w := utf8.DecodeRuneInString(l.input[l.pos:])
+  _, w := utf8.DecodeRuneInString(l.input[l.pos:])
   l.pos += w
 }
 
 func (l *lexer) emit(token int) {
   s := l.input[l.start:l.pos]
-  // XXX emit
+  l.tokens <- tokenInfo{raw: s, id: token}
   l.start = l.pos
 }
 
 func (l *lexer) stateIdentifier() stateFn {
-  identifier := []rune{}
   for {
     r := l.peek()
 
     switch {
     case r == '(':
-      l.emit(tokIdentifier, identifier)
+      l.emit(tokIdentifier)
       l.advance()
-      identifier = []rune{}
-      l.emit(tokOpen, []rune{r})
+      l.emit(tokOpen)
     case r == ')':
-      l.emit(tokIdentifier, identifier)
+      l.emit(tokIdentifier)
       l.advance()
-      identifier = []rune{}
-      l.emit(tokClose, []rune{r})
+      l.emit(tokClose)
     case unicode.IsSpace(r):
       l.emit(tokIdentifier)
       return l.stateSpace
     default:
-      identifier = append(identifier, r)
       l.advance()
     }
   }
@@ -67,34 +64,25 @@ func (l *lexer) stateSpace() stateFn {
     l.advance()
   }
   // We don't emit anything for spaces.
-  return stateIdentifier
+  return l.stateIdentifier
 }
 
-func (l *lexer) run(raw string) {
-  for s := l.stateIdentifier(); s != nil {
+func (l *lexer) run() {
+  for s := l.stateIdentifier(); s != nil ; {
     s = s()
   }
-  close(l.items)
+  close(l.tokens)
 }
 
 func (l *lexer) Lex(lval *yySymType) int {
-  token, ok := <-l.next
+  token, ok := <-l.tokens
   if !ok {
     return 0 // EOF
   }
 
-  lval.raw = token
-
+  lval.raw = token.raw
   log.Printf("%v", lval)
-
-  switch token {
-  case "(":
-    return tokOpen
-  case ")":
-    return tokClose
-  default:
-    return tokIdentifier
-  }
+  return token.id
 }
 
 func (l *lexer) Error(s string) {
@@ -103,7 +91,8 @@ func (l *lexer) Error(s string) {
 
 func newLexer(raw string) *lexer {
   l := &lexer{
-    next: make(chan item),
+    input: raw,
+    tokens: make(chan tokenInfo),
   }
   go l.run()
   return l
