@@ -36,3 +36,20 @@ func TestLexer(t *testing.T) {
     }
   }
 }
+
+func TestParsing(t *testing.T) {
+  tests := []string{
+    "foo",
+    "()",
+    "(foo)",
+    "(a (b c) d (e f))",
+  }
+
+  for _, input := range tests {
+    l := newLexer(input)
+    yyParse(l)
+    if len(l.errors) != 0 {
+      t.Fatalf("Input %q - parsing errors: %v", input, l.errors)
+    }
+  }
+}

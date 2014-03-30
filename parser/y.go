@@ -27,7 +27,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
-//line parser/glop.y:28
+//line parser/glop.y:26
 
 
 
@@ -44,35 +44,36 @@ const yyPrivate = 57344
 var yyTokenNames []string
 var yyStates []string
 
-const yyLast = 10
+const yyLast = 11
 
 var yyAct = []int{
 
-	3, 4, 6, 8, 3, 7, 2, 9, 5, 1,
+	5, 7, 4, 5, 2, 4, 9, 3, 6, 1,
+	8,
 }
 var yyPact = []int{
 
-	0, -1000, -1000, -4, -2, -4, -1000, -1000, -1000, -1000,
+	-1, -1000, -1000, -1, -1000, -4, -1000, -1000, 1, -1000,
 }
 var yyPgo = []int{
 
-	0, 9, 5, 1, 8,
+	0, 9, 4, 7,
 }
 var yyR1 = []int{
 
-	0, 1, 2, 3, 3, 4, 4,
+	0, 1, 2, 2, 3, 3, 3,
 }
 var yyR2 = []int{
 
-	0, 1, 3, 1, 2, 1, 1,
+	0, 1, 1, 2, 1, 2, 3,
 }
 var yyChk = []int{
 
-	-1000, -1, -2, 4, -3, -4, 6, -2, 5, -3,
+	-1000, -1, -2, -3, 6, 4, -2, 5, -2, 5,
 }
 var yyDef = []int{
 
-	0, -2, 1, 0, 0, 3, 5, 6, 2, 4,
+	0, -2, 1, 2, 4, 0, 3, 5, 0, 6,
 }
 var yyTok1 = []int{
 

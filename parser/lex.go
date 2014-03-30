@@ -20,6 +20,7 @@ type lexer struct {
   start int
   pos int
   tokens chan tokenInfo
+  errors []string
 }
 
 func (l *lexer) peek() rune {
@@ -102,6 +103,7 @@ func (l *lexer) Lex(lval *yySymType) int {
 }
 
 func (l *lexer) Error(s string) {
+  l.errors = append(l.errors, s)
   log.Printf("parse error: %s\n", s)
 }
 

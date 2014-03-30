@@ -12,18 +12,16 @@ package parser
 %token <raw> tokClose
 %token <raw> tokIdentifier
 
-%type <raw> program expr multiplop plop
+%type <raw> program expr plop
 
 %%
 
 program: expr
 
-expr: tokOpen multiplop tokClose
+expr:
+   plop | plop expr
 
-multiplop:
-         plop | plop multiplop
-
-plop: tokIdentifier | expr
+plop: tokIdentifier | tokOpen tokClose | tokOpen expr tokClose
 
 %%
 
