@@ -1,8 +1,6 @@
 package parser
 
 import (
-  "fmt"
-  "reflect"
   "testing"
 )
 
@@ -42,26 +40,33 @@ func TestLexer(t *testing.T) {
 }
 
 func TestParsing(t *testing.T) {
-  tests := map[string]bool{
-    "foo": true,
-    "a(b": false,
-    "()": true,
-    "(foo)": true,
-    "(a b)": true,
-    "(a (b c))": true,
-    "(a (b c) d (e f))": true,
+  tests := map[string]int{
+    "foo": 1,
+    "a(b": -1,
+    "()": 0,
+    "(foo)": 1,
+    "(a b)": 2,
+    "(a (b c))": 2,
+    "(a (b c) d (e f))": 4,
   }
 
-  for input, valid := range tests {
+  for input, count := range tests {
     l := newLexer(input)
     yyParse(l)
 
-    if valid && len(l.errors) != 0 {
+    if count < 0 {
+      if len(l.errors) == 0 {
+        t.Errorf("Input %q parsed instead of generating error", input)
+      }
+      continue
+    }
+
+    if len(l.errors) != 0 {
       t.Errorf("Input %q - parsing errors: %v", input, l.errors)
     }
 
-    if !valid && len(l.errors) == 0 {
-      t.Errorf("Input %q parsed instead of generating error", input)
+    if len(l.program.Children()) != count {
+      t.Errorf("Input %q - expecting %d children, got %d: %v", input, count, len(l.program.Children()), l.program.Children())
     }
   }
 }
