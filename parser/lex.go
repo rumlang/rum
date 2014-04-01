@@ -4,6 +4,8 @@ import (
   "log"
   "unicode"
   "unicode/utf8"
+
+  "github.com/palats/glop/nodes"
 )
 
 const EOF rune = 0
@@ -21,6 +23,7 @@ type lexer struct {
   pos int
   tokens chan tokenInfo
   errors []string
+  program nodes.Node
 }
 
 func (l *lexer) peek() rune {

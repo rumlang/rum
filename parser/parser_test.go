@@ -1,6 +1,10 @@
 package parser
 
-import "testing"
+import (
+  "fmt"
+  "reflect"
+  "testing"
+)
 
 func TestLexer(t *testing.T) {
   tests := map[string][]tokenInfo{
@@ -38,18 +42,26 @@ func TestLexer(t *testing.T) {
 }
 
 func TestParsing(t *testing.T) {
-  tests := []string{
-    "foo",
-    "()",
-    "(foo)",
-    "(a (b c) d (e f))",
+  tests := map[string]bool{
+    "foo": true,
+    "a(b": false,
+    "()": true,
+    "(foo)": true,
+    "(a b)": true,
+    "(a (b c))": true,
+    "(a (b c) d (e f))": true,
   }
 
-  for _, input := range tests {
+  for input, valid := range tests {
     l := newLexer(input)
     yyParse(l)
-    if len(l.errors) != 0 {
-      t.Fatalf("Input %q - parsing errors: %v", input, l.errors)
+
+    if valid && len(l.errors) != 0 {
+      t.Errorf("Input %q - parsing errors: %v", input, l.errors)
+    }
+
+    if !valid && len(l.errors) == 0 {
+      t.Errorf("Input %q parsed instead of generating error", input)
     }
   }
 }

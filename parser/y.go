@@ -5,11 +5,16 @@ package parser
 import __yyfmt__ "fmt"
 //line parser/glop.y:3
 		
+import (
+  "github.com/palats/glop/nodes"
+)
 
-//line parser/glop.y:7
+
+//line parser/glop.y:11
 type yySymType struct {
 	yys int
   raw string
+  node nodes.Node
 }
 
 const tokOpen = 57346
@@ -27,7 +32,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
-//line parser/glop.y:26
+//line parser/glop.y:64
 
 
 
@@ -38,42 +43,45 @@ var yyExca = []int{
 	-2, 0,
 }
 
-const yyNprod = 7
+const yyNprod = 8
 const yyPrivate = 57344
 
 var yyTokenNames []string
 var yyStates []string
 
-const yyLast = 11
+const yyLast = 12
 
 var yyAct = []int{
 
-	5, 7, 4, 5, 2, 4, 9, 3, 6, 1,
-	8,
+	6, 3, 7, 5, 3, 4, 5, 9, 1, 10,
+	8, 2,
 }
 var yyPact = []int{
 
-	-1, -1000, -1000, -1, -1000, -4, -1000, -1000, 1, -1000,
+	0, -1000, -1000, -3, -1000, -1000, 2, -1000, 0, -1000,
+	-1000,
 }
 var yyPgo = []int{
 
-	0, 9, 4, 7,
+	0, 8, 10, 5, 0,
 }
 var yyR1 = []int{
 
-	0, 1, 2, 2, 3, 3, 3,
+	0, 1, 2, 2, 2, 4, 4, 3,
 }
 var yyR2 = []int{
 
-	0, 1, 1, 2, 1, 2, 3,
+	0, 1, 3, 2, 1, 1, 2, 1,
 }
 var yyChk = []int{
 
-	-1000, -1, -2, -3, 6, 4, -2, 5, -2, 5,
+	-1000, -1, -2, 4, -3, 6, -4, 5, -2, 5,
+	-4,
 }
 var yyDef = []int{
 
-	0, -2, 1, 2, 4, 0, 3, 5, 0, 6,
+	0, -2, 1, 0, 4, 7, 0, 3, 5, 2,
+	6,
 }
 var yyTok1 = []int{
 
@@ -313,17 +321,40 @@ yydefault:
 	switch yynt {
 
 	case 1:
-		yyVAL.raw = yyS[yypt-0].raw
+		//line parser/glop.y:25
+		{
+	    yylex.(*lexer).program = yyS[yypt-0].node
+	  }
 	case 2:
-		yyVAL.raw = yyS[yypt-0].raw
+		//line parser/glop.y:32
+		{
+	    yyVAL.node = yyS[yypt-1].node
+	  }
 	case 3:
-		yyVAL.raw = yyS[yypt-0].raw
+		//line parser/glop.y:37
+		{
+	    yyVAL.node = nodes.NewExpr(nil, nil)
+	  }
 	case 4:
-		yyVAL.raw = yyS[yypt-0].raw
+		//line parser/glop.y:42
+		{
+	    yyVAL.node = nodes.NewExpr(yyS[yypt-0].node, nil)
+	  }
 	case 5:
-		yyVAL.raw = yyS[yypt-0].raw
+		//line parser/glop.y:49
+		{
+	    yyVAL.node = nodes.NewExpr(yyS[yypt-0].node, nil)
+	  }
 	case 6:
-		yyVAL.raw = yyS[yypt-0].raw
+		//line parser/glop.y:53
+		{
+	    yyVAL.node = nodes.NewExpr(yyS[yypt-1].node, yyS[yypt-0].node)
+	  }
+	case 7:
+		//line parser/glop.y:60
+		{
+	    yyVAL.node = nodes.NewIdentifier(yyS[yypt-0].raw)
+	  }
 	}
 	goto yystack /* stack new state and value */
 }
