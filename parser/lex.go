@@ -119,6 +119,8 @@ func newLexer(raw string) *lexer {
   return l
 }
 
-func Parse(raw string) {
-  yyParse(newLexer(raw))
+func Parse(raw string) nodes.Node {
+  l := newLexer(raw)
+  yyParse(l)
+  return l.program
 }

@@ -41,7 +41,7 @@ func TestLexer(t *testing.T) {
 
 func TestParsing(t *testing.T) {
   tests := map[string]int{
-    "foo": 1,
+    "foo": 0,
     "a(b": -1,
     "()": 0,
     "(foo)": 1,

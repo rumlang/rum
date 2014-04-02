@@ -338,8 +338,8 @@ yydefault:
 	case 4:
 		//line parser/glop.y:42
 		{
-	    yyVAL.node = nodes.NewExpr(yyS[yypt-0].node, nil)
-	  }
+	    yyVAL.node = yyS[yypt-0].node // nodes.NewExpr($1, nil)
+  }
 	case 5:
 		//line parser/glop.y:49
 		{

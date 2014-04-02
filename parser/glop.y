@@ -40,7 +40,7 @@ expr:
 
 | atom
   {
-    $$ = nodes.NewExpr($1, nil)
+    $$ = $1 // nodes.NewExpr($1, nil)
   }
 
 
