@@ -1,9 +1,9 @@
 package main
 
 import (
-  "github.com/palats/glop/parser"
+	"github.com/palats/glop/parser"
 )
 
 func main() {
-  parser.Parse("(foo)")
+	parser.Parse("(foo)")
 }

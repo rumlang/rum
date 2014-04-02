@@ -1,20 +1,18 @@
-
 //line parser/glop.y:2
-
 package parser
-import __yyfmt__ "fmt"
-//line parser/glop.y:3
-		
-import (
-  "github.com/palats/glop/nodes"
-)
 
+import __yyfmt__ "fmt"
+
+//line parser/glop.y:3
+import (
+	"github.com/palats/glop/nodes"
+)
 
 //line parser/glop.y:11
 type yySymType struct {
-	yys int
-  raw string
-  node nodes.Node
+	yys  int
+	raw  string
+	node nodes.Node
 }
 
 const tokOpen = 57346
@@ -33,8 +31,6 @@ const yyErrCode = 2
 const yyMaxDepth = 200
 
 //line parser/glop.y:64
-
-
 
 //line yacctab:1
 var yyExca = []int{
@@ -323,38 +319,38 @@ yydefault:
 	case 1:
 		//line parser/glop.y:25
 		{
-	    yylex.(*lexer).program = yyS[yypt-0].node
-	  }
+			yylex.(*lexer).program = yyS[yypt-0].node
+		}
 	case 2:
 		//line parser/glop.y:32
 		{
-	    yyVAL.node = yyS[yypt-1].node
-	  }
+			yyVAL.node = yyS[yypt-1].node
+		}
 	case 3:
 		//line parser/glop.y:37
 		{
-	    yyVAL.node = nodes.NewExpr(nil, nil)
-	  }
+			yyVAL.node = nodes.NewExpr(nil, nil)
+		}
 	case 4:
 		//line parser/glop.y:42
 		{
-	    yyVAL.node = yyS[yypt-0].node // nodes.NewExpr($1, nil)
-  }
+			yyVAL.node = yyS[yypt-0].node // nodes.NewExpr($1, nil)
+		}
 	case 5:
 		//line parser/glop.y:49
 		{
-	    yyVAL.node = nodes.NewExpr(yyS[yypt-0].node, nil)
-	  }
+			yyVAL.node = nodes.NewExpr(yyS[yypt-0].node, nil)
+		}
 	case 6:
 		//line parser/glop.y:53
 		{
-	    yyVAL.node = nodes.NewExpr(yyS[yypt-1].node, yyS[yypt-0].node)
-	  }
+			yyVAL.node = nodes.NewExpr(yyS[yypt-1].node, yyS[yypt-0].node)
+		}
 	case 7:
 		//line parser/glop.y:60
 		{
-	    yyVAL.node = nodes.NewIdentifier(yyS[yypt-0].raw)
-	  }
+			yyVAL.node = nodes.NewIdentifier(yyS[yypt-0].raw)
+		}
 	}
 	goto yystack /* stack new state and value */
 }
