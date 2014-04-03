@@ -7,17 +7,17 @@ import (
 func TestLexer(t *testing.T) {
 	tests := map[string][]tokenInfo{
 		"foo": []tokenInfo{
-			{"foo", tokIdentifier},
+			{text: "foo", id: tokIdentifier, value: "foo"},
 		},
 		"(foo)": []tokenInfo{
-			{"(", tokOpen},
-			{"foo", tokIdentifier},
-			{")", tokClose},
+			{text: "(", id: tokOpen},
+			{text: "foo", id: tokIdentifier, value: "foo"},
+			{text: ")", id: tokClose},
 		},
 		" (  foo ) ": []tokenInfo{
-			{"(", tokOpen},
-			{"foo", tokIdentifier},
-			{")", tokClose},
+			{text: "(", id: tokOpen},
+			{text: "foo", id: tokIdentifier, value: "foo"},
+			{text: ")", id: tokClose},
 		},
 	}
 

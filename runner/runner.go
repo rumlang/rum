@@ -20,13 +20,10 @@ func NewContext() *Context {
 	c.env["+"] = nodes.Internal(func(ctx nodes.Context, args ...nodes.Node) interface{} {
 		var v int64
 		for _, n := range args {
-			v += n.Exec(ctx).(int64)
+			v += n.Eval(ctx).(int64)
 		}
 		return v
 	})
-
-	c.env["1"] = int64(1)
-	c.env["2"] = int64(2)
 
 	return c
 }

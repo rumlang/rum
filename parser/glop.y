@@ -9,13 +9,14 @@ import (
 %}
 
 %union {
-  raw string
+  token tokenInfo
   node nodes.Node
 }
 
-%token <raw> tokOpen
-%token <raw> tokClose
-%token <raw> tokIdentifier
+%token <token> tokOpen
+%token <token> tokClose
+%token <token> tokIdentifier
+%token <token> tokInteger
 
 %type <node> program expr atom list
 
@@ -40,7 +41,7 @@ expr:
 
 | atom
   {
-    $$ = $1 // nodes.NewExpr($1, nil)
+    $$ = $1
   }
 
 
@@ -59,6 +60,10 @@ atom:
   tokIdentifier
   {
     $$ = nodes.NewIdentifier($1)
+  }
+| tokInteger
+  {
+    $$ = nodes.NewInteger($1)
   }
 
 %%

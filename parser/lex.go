@@ -2,21 +2,33 @@ package parser
 
 import (
 	"log"
+	"strconv"
 	"unicode"
 	"unicode/utf8"
 
 	"github.com/palats/glop/nodes"
 )
 
+// EOF is an arbitrary rune to indicate end of input from the lexer functions.
 const EOF rune = 0
 
+// stateFn is the prototype for function of the lexer state machine. They don't
+// take any parameter - data is shared through the object.
 type stateFn func() stateFn
 
+// tokenInfo give details about a token the lexer extracted - including
+// information about where it comes from.
 type tokenInfo struct {
-	raw string
-	id  int
+	text  string
+	value interface{}
+	id    int
 }
 
+func (t tokenInfo) Value() interface{} {
+	return t.value
+}
+
+// lexer is a 'go yacc' compatible lexer object.
 type lexer struct {
 	input   string
 	start   int
@@ -31,7 +43,7 @@ func (l *lexer) peek() rune {
 		return EOF
 	}
 	r, _ := utf8.DecodeRuneInString(l.input[l.pos:])
-	// XXX error detection
+	// TODO error detection
 	return r
 }
 
@@ -40,42 +52,75 @@ func (l *lexer) advance() {
 	l.pos += w
 }
 
-func (l *lexer) emit(token int) {
-	if l.pos <= l.start {
-		return
+func (l *lexer) accept() tokenInfo {
+	t := tokenInfo{
+		text: l.input[l.start:l.pos],
 	}
-	s := l.input[l.start:l.pos]
-	l.tokens <- tokenInfo{raw: s, id: token}
 	l.start = l.pos
-}
-
-func (l *lexer) discard() {
-	l.start = l.pos
+	return t
 }
 
 func (l *lexer) stateIdentifier() stateFn {
-	for {
+	var next stateFn
+	for next == nil {
 		r := l.peek()
 
 		switch {
 		case r == '(':
-			l.emit(tokIdentifier)
-			l.advance()
-			l.emit(tokOpen)
+			next = l.stateOpen
 		case r == ')':
-			l.emit(tokIdentifier)
-			l.advance()
-			l.emit(tokClose)
+			next = l.stateClose
 		case unicode.IsSpace(r):
-			l.emit(tokIdentifier)
-			return l.stateSpace
+			next = l.stateSpace
 		case r == EOF:
-			l.emit(tokIdentifier)
-			return nil
+			next = l.stateEnd
 		default:
 			l.advance()
 		}
 	}
+
+	token := l.accept()
+
+	// Ignore empty transition - they're just a parsing artifact.
+	if len(token.text) == 0 {
+		return next
+	}
+
+	// Check the first rune to determine whether it is just an arbitrary
+	// identifier or a number.
+	r, w := utf8.DecodeRuneInString(token.text)
+
+	if (len(token.text)-w > 0 && (r == '+' || r == '-')) || unicode.IsDigit(r) {
+		token.id = tokInteger
+		i, err := strconv.ParseInt(token.text, 10, 64)
+		if err != nil {
+			panic(err) // TODO
+		}
+		token.value = i
+	} else {
+		token.id = tokIdentifier
+		token.value = token.text
+	}
+	l.tokens <- token
+	return next
+}
+
+func (l *lexer) stateOpen() stateFn {
+	l.advance()
+	token := l.accept()
+	// TODO: check that it is the right character and fail otherwise.
+	token.id = tokOpen
+	l.tokens <- token
+	return l.stateIdentifier
+}
+
+func (l *lexer) stateClose() stateFn {
+	l.advance()
+	token := l.accept()
+	// TODO: check that it is the right character and fail otherwise.
+	token.id = tokClose
+	l.tokens <- token
+	return l.stateIdentifier
 }
 
 func (l *lexer) stateSpace() stateFn {
@@ -83,8 +128,12 @@ func (l *lexer) stateSpace() stateFn {
 		l.advance()
 	}
 	// We don't emit anything for spaces.
-	l.discard()
+	l.accept()
 	return l.stateIdentifier
+}
+
+func (l *lexer) stateEnd() stateFn {
+	return nil
 }
 
 func (l *lexer) run() {
@@ -100,7 +149,7 @@ func (l *lexer) Lex(lval *yySymType) int {
 		return 0 // EOF
 	}
 
-	lval.raw = token.raw
+	lval.token = token
 	log.Printf("%v", lval)
 	return token.id
 }
@@ -110,17 +159,17 @@ func (l *lexer) Error(s string) {
 	log.Printf("parse error: %s\n", s)
 }
 
-func newLexer(raw string) *lexer {
+func newLexer(input string) *lexer {
 	l := &lexer{
-		input:  raw,
+		input:  input,
 		tokens: make(chan tokenInfo),
 	}
 	go l.run()
 	return l
 }
 
-func Parse(raw string) nodes.Node {
-	l := newLexer(raw)
+func Parse(input string) nodes.Node {
+	l := newLexer(input)
 	yyParse(l)
 	return l.program
 }

@@ -7,10 +7,13 @@ import (
 )
 
 type Node interface {
-	Raw() string
 	Children() []Node
 	String() string
-	Exec(ctx Context) interface{}
+	Eval(ctx Context) interface{}
+}
+
+type Token interface {
+	Value() interface{}
 }
 
 type Context interface {
@@ -20,25 +23,20 @@ type Context interface {
 type Internal func(Context, ...Node) interface{}
 
 type Expr struct {
-	raw      string
 	children []Node
-}
-
-func (e *Expr) Raw() string {
-	return e.raw
 }
 
 func (e *Expr) Children() []Node {
 	return e.children
 }
 
-func (e *Expr) Exec(ctx Context) interface{} {
-	log.Print("Expr:Exec", e)
+func (e *Expr) Eval(ctx Context) interface{} {
+	log.Print("Expr:Eval", e)
 	if len(e.children) <= 0 {
 		return nil
 	}
 
-	fn := e.children[0].Exec(ctx)
+	fn := e.children[0].Eval(ctx)
 	return fn.(Internal)(ctx, e.children[1:]...)
 }
 
@@ -63,27 +61,45 @@ func NewExpr(atom Node, list Node) *Expr {
 }
 
 type Identifier struct {
-	raw string
-}
-
-func (i *Identifier) Raw() string {
-	return i.raw
+	value string
 }
 
 func (i *Identifier) Children() []Node {
 	return nil
 }
 
-func (i *Identifier) Exec(ctx Context) interface{} {
-	return ctx.Get(i.raw)
+func (i *Identifier) Eval(ctx Context) interface{} {
+	return ctx.Get(i.value)
 }
 
 func (i *Identifier) String() string {
-	return fmt.Sprintf("<id>%q", i.raw)
+	return fmt.Sprintf("<id>%q", i.value)
 }
 
-func NewIdentifier(raw string) *Identifier {
+func NewIdentifier(token Token) *Identifier {
 	return &Identifier{
-		raw: raw,
+		value: token.Value().(string),
+	}
+}
+
+type Integer struct {
+	value int64
+}
+
+func (i *Integer) Children() []Node {
+	return nil
+}
+
+func (i *Integer) Eval(ctx Context) interface{} {
+	return i.value
+}
+
+func (i *Integer) String() string {
+	return fmt.Sprintf("<integer>%d", i.value)
+}
+
+func NewInteger(token Token) *Integer {
+	return &Integer{
+		value: token.Value().(int64),
 	}
 }
