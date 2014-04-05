@@ -39,3 +39,10 @@ func TestDefine(t *testing.T) {
 		t.Errorf("Expected '5', got: %v", n)
 	}
 }
+
+func TestSet(t *testing.T) {
+	n := ParseEval("(begin (define a 5) (set! a 4) a)")
+	if n.(int64) != 4 {
+		t.Errorf("Expected '4', got: %v", n)
+	}
+}

@@ -27,6 +27,7 @@ func NewContext() *Context {
 	c.env["begin"] = Begin
 	c.env["quote"] = nodes.Internal(Quote)
 	c.env["define"] = nodes.Internal(Define)
+	c.env["set!"] = nodes.Internal(Define)
 	// TODO: if
 	// TODO: set!
 	// TODO: define
