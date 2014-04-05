@@ -19,6 +19,7 @@ type Token interface {
 
 type Context interface {
 	Get(s string) interface{}
+	Set(s string, v interface{}) interface{}
 }
 
 type Internal func(Context, ...Node) interface{}
@@ -91,6 +92,10 @@ func (i *Identifier) Eval(ctx Context) interface{} {
 
 func (i *Identifier) String() string {
 	return fmt.Sprintf("<id>%q", i.value)
+}
+
+func (i *Identifier) Value() string {
+	return i.value
 }
 
 func NewIdentifier(token Token) *Identifier {

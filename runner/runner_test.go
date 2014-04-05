@@ -32,3 +32,10 @@ func TestBegin(t *testing.T) {
 		t.Errorf("Expected nil, got: %v", n)
 	}
 }
+
+func TestDefine(t *testing.T) {
+	n := ParseEval("(begin (define a 5) a)")
+	if n.(int64) != 5 {
+		t.Errorf("Expected '5', got: %v", n)
+	}
+}
