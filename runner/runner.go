@@ -1,8 +1,6 @@
 package runner
 
-import (
-	"github.com/palats/glop/nodes"
-)
+import "github.com/palats/glop/nodes"
 
 type Context struct {
 	env map[string]interface{}
@@ -17,13 +15,23 @@ func NewContext() *Context {
 		env: make(map[string]interface{}),
 	}
 
-	c.env["+"] = nodes.Internal(func(ctx nodes.Context, args ...nodes.Node) interface{} {
-		var v int64
-		for _, n := range args {
-			v += n.Eval(ctx).(int64)
-		}
-		return v
-	})
+	c.env["+"] = OpAdd
+	c.env["quote"] = nodes.Internal(Quote)
 
 	return c
+}
+
+func OpAdd(values ...int64) int64 {
+	var total int64
+	for _, v := range values {
+		total += v
+	}
+	return total
+}
+
+func Quote(ctx nodes.Context, args ...nodes.Node) interface{} {
+	if len(args) != 1 {
+		panic("Invalid number of arguments for quote")
+	}
+	return args[0]
 }

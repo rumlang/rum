@@ -3,6 +3,7 @@ package nodes
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 )
 
@@ -37,7 +38,23 @@ func (e *Expr) Eval(ctx Context) interface{} {
 	}
 
 	fn := e.children[0].Eval(ctx)
-	return fn.(Internal)(ctx, e.children[1:]...)
+
+	if internal, ok := fn.(Internal); ok {
+		return internal(ctx, e.children[1:]...)
+	}
+
+	var args []reflect.Value
+	for _, children := range e.children[1:] {
+		args = append(args, reflect.ValueOf(children.Eval(ctx)))
+	}
+	result := reflect.ValueOf(fn).Call(args)
+	if len(result) == 0 {
+		return nil
+	}
+	if len(result) == 1 {
+		return result[0].Interface()
+	}
+	panic("Multiple arguments unsupportted")
 }
 
 func (e *Expr) String() string {
