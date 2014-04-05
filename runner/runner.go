@@ -67,6 +67,9 @@ func Define(ctx nodes.Context, args ...nodes.Node) interface{} {
 	return ctx.Set(s, args[1].Eval(ctx))
 }
 
+// If implements the 'if' builtin function. It has to be an Internal interface
+// - otherwise, both true & false expressions would have been already
+// evaluated.
 func If(ctx nodes.Context, args ...nodes.Node) interface{} {
 	if len(args) < 2 || len(args) > 3 {
 		panic("Invalid arguments")
