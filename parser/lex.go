@@ -150,7 +150,6 @@ func (l *lexer) Lex(lval *yySymType) int {
 	}
 
 	lval.token = token
-	log.Printf("%v", lval)
 	return token.id
 }
 

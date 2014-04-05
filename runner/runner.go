@@ -1,6 +1,9 @@
 package runner
 
-import "github.com/palats/glop/nodes"
+import (
+	"github.com/palats/glop/nodes"
+	"github.com/palats/glop/parser"
+)
 
 type Context struct {
 	env map[string]interface{}
@@ -16,7 +19,13 @@ func NewContext() *Context {
 	}
 
 	c.env["+"] = OpAdd
+	c.env["begin"] = Begin
 	c.env["quote"] = nodes.Internal(Quote)
+	// TODO: if
+	// TODO: set!
+	// TODO: define
+	// TODO: lambda
+	// TODO: begin
 
 	return c
 }
@@ -34,4 +43,15 @@ func Quote(ctx nodes.Context, args ...nodes.Node) interface{} {
 		panic("Invalid number of arguments for quote")
 	}
 	return args[0]
+}
+
+func Begin(values ...interface{}) interface{} {
+	if len(values) == 0 {
+		return nil
+	}
+	return values[len(values)-1]
+}
+
+func ParseEval(input string) interface{} {
+	return parser.Parse(input).Eval(NewContext())
 }
