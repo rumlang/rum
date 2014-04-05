@@ -6,11 +6,16 @@ import (
 )
 
 type Context struct {
-	env map[string]interface{}
+	parent nodes.Context
+	env    map[string]interface{}
 }
 
 func (c *Context) Get(s string) interface{} {
-	return c.env[s]
+	v, ok := c.env[s]
+	if !ok && c.parent != nil {
+		return c.parent.Get(s)
+	}
+	return v
 }
 
 func (c *Context) Set(s string, v interface{}) interface{} {
@@ -18,9 +23,10 @@ func (c *Context) Set(s string, v interface{}) interface{} {
 	return v
 }
 
-func NewContext() *Context {
+func NewContext(parent nodes.Context) *Context {
 	c := &Context{
-		env: make(map[string]interface{}),
+		parent: parent,
+		env:    make(map[string]interface{}),
 	}
 
 	c.env["begin"] = Begin
@@ -28,7 +34,7 @@ func NewContext() *Context {
 	c.env["define"] = nodes.Internal(Define)
 	c.env["set!"] = nodes.Internal(Define)
 	c.env["if"] = nodes.Internal(If)
-	// TODO: lambda
+	c.env["lambda"] = nodes.Internal(Lambda)
 
 	c.env["+"] = OpAdd
 	c.env["true"] = true
@@ -87,6 +93,30 @@ func If(ctx nodes.Context, args ...nodes.Node) interface{} {
 	return args[2].Eval(ctx)
 }
 
+func Lambda(ctx nodes.Context, args ...nodes.Node) interface{} {
+	if len(args) != 2 {
+		panic("Invalid arguments")
+	}
+
+	names := []string{}
+	for _, n := range args[0].Children() {
+		names = append(names, n.(*nodes.Identifier).Value())
+	}
+	implNode := args[1]
+	impl := func(ctx nodes.Context, args ...nodes.Node) interface{} {
+		if len(args) != len(names) {
+			panic("TODO")
+		}
+		nested := NewContext(ctx)
+		for i, name := range names {
+			nested.Set(name, args[i].Eval(ctx))
+		}
+		return implNode.Eval(nested)
+	}
+
+	return nodes.Internal(impl)
+}
+
 func ParseEval(input string) interface{} {
-	return parser.Parse(input).Eval(NewContext())
+	return parser.Parse(input).Eval(NewContext(nil))
 }
