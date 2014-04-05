@@ -23,15 +23,16 @@ func NewContext() *Context {
 		env: make(map[string]interface{}),
 	}
 
-	c.env["+"] = OpAdd
 	c.env["begin"] = Begin
 	c.env["quote"] = nodes.Internal(Quote)
 	c.env["define"] = nodes.Internal(Define)
 	c.env["set!"] = nodes.Internal(Define)
-	// TODO: if
-	// TODO: set!
-	// TODO: define
+	c.env["if"] = nodes.Internal(If)
 	// TODO: lambda
+
+	c.env["+"] = OpAdd
+	c.env["true"] = true
+	c.env["false"] = false
 
 	return c
 }
@@ -64,6 +65,23 @@ func Define(ctx nodes.Context, args ...nodes.Node) interface{} {
 	}
 	s := args[0].(*nodes.Identifier).Value()
 	return ctx.Set(s, args[1].Eval(ctx))
+}
+
+func If(ctx nodes.Context, args ...nodes.Node) interface{} {
+	if len(args) < 2 || len(args) > 3 {
+		panic("Invalid arguments")
+	}
+
+	cond := args[0].Eval(ctx).(bool)
+	if cond {
+		return args[1].Eval(ctx)
+	}
+
+	if len(args) <= 2 {
+		return nil
+	}
+
+	return args[2].Eval(ctx)
 }
 
 func ParseEval(input string) interface{} {

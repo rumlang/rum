@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/palats/glop/nodes"
@@ -44,5 +45,20 @@ func TestSet(t *testing.T) {
 	n := ParseEval("(begin (define a 5) (set! a 4) a)")
 	if n.(int64) != 4 {
 		t.Errorf("Expected '4', got: %v", n)
+	}
+}
+
+func TestIf(t *testing.T) {
+	valid := map[string]interface{}{
+		"(if true 7)":    int64(7),
+		"(if false 7)":   nil,
+		"(if false 7 8)": int64(8),
+	}
+
+	for input, expected := range valid {
+		r := ParseEval(input)
+		if !reflect.DeepEqual(r, expected) {
+			t.Errorf("Input %q -- expected <%T>%#+v, got: <%T>%#+v", input, expected, expected, r, r)
+		}
 	}
 }
