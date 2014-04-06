@@ -1,16 +1,18 @@
 
 //line parser/glop.y:2
-
+// Package parser contains the logic to extract the structure of the code. This
+// file contains the YACC grammar. See README.md to the corresponding y.go from
+// it.
 package parser
 import __yyfmt__ "fmt"
-//line parser/glop.y:3
+//line parser/glop.y:5
 		
 import (
   "github.com/palats/glop/nodes"
 )
 
 
-//line parser/glop.y:11
+//line parser/glop.y:13
 type yySymType struct {
 	yys int
   token tokenInfo
@@ -34,7 +36,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
-//line parser/glop.y:69
+//line parser/glop.y:71
 
 
 
@@ -323,42 +325,42 @@ yydefault:
 	switch yynt {
 
 	case 1:
-		//line parser/glop.y:26
+		//line parser/glop.y:28
 		{
 	    yylex.(*lexer).program = yyS[yypt-0].node
 	  }
 	case 2:
-		//line parser/glop.y:33
+		//line parser/glop.y:35
 		{
 	    yyVAL.node = yyS[yypt-1].node
 	  }
 	case 3:
-		//line parser/glop.y:38
+		//line parser/glop.y:40
 		{
 	    yyVAL.node = nodes.NewExpr(nil, nil)
 	  }
 	case 4:
-		//line parser/glop.y:43
+		//line parser/glop.y:45
 		{
 	    yyVAL.node = yyS[yypt-0].node
 	  }
 	case 5:
-		//line parser/glop.y:50
+		//line parser/glop.y:52
 		{
 	    yyVAL.node = nodes.NewExpr(yyS[yypt-0].node, nil)
 	  }
 	case 6:
-		//line parser/glop.y:54
+		//line parser/glop.y:56
 		{
 	    yyVAL.node = nodes.NewExpr(yyS[yypt-1].node, yyS[yypt-0].node)
 	  }
 	case 7:
-		//line parser/glop.y:61
+		//line parser/glop.y:63
 		{
 	    yyVAL.node = nodes.NewIdentifier(yyS[yypt-0].token)
 	  }
 	case 8:
-		//line parser/glop.y:65
+		//line parser/glop.y:67
 		{
 	    yyVAL.node = nodes.NewInteger(yyS[yypt-0].token)
 	  }
