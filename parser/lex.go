@@ -1,11 +1,11 @@
 package parser
 
 import (
-	"log"
 	"strconv"
 	"unicode"
 	"unicode/utf8"
 
+	log "github.com/golang/glog"
 	"github.com/palats/glop/nodes"
 )
 
@@ -155,7 +155,7 @@ func (l *lexer) Lex(lval *yySymType) int {
 
 func (l *lexer) Error(s string) {
 	l.errors = append(l.errors, s)
-	log.Printf("parse error: %s\n", s)
+	log.Errorf("parse error: %s\n", s)
 }
 
 func newLexer(input string) *lexer {

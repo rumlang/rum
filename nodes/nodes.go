@@ -2,9 +2,10 @@ package nodes
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"strings"
+
+	log "github.com/golang/glog"
 )
 
 type Node interface {
@@ -33,7 +34,7 @@ func (e *Expr) Children() []Node {
 }
 
 func (e *Expr) Eval(ctx Context) interface{} {
-	log.Print("Expr:Eval", e)
+	log.Info("Expr:Eval", e)
 	if len(e.children) <= 0 {
 		return nil
 	}
