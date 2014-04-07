@@ -1,3 +1,5 @@
+// Package node provide the core implementation of the nodes of the AST. It
+// provides the implementation of evaluation for each of those.
 package nodes
 
 import (

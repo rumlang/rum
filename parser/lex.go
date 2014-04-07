@@ -1,3 +1,7 @@
+// Package parser takes care of lexing & parsing following the grammer defined
+// in glop.y.
+// This file contains the lexer, taking care of extracting relevant tokens from
+// the provided input.
 package parser
 
 import (
@@ -19,25 +23,41 @@ type stateFn func() stateFn
 // tokenInfo give details about a token the lexer extracted - including
 // information about where it comes from.
 type tokenInfo struct {
-	text  string
+	// text is the raw representation, identical to the input.
+	text string
+	// start is the absolute position in the input of this token.
+	start int
+	// line is the line number in the input of the beginning of this token.
+	line int
+	// value is the parsed value of the token - can be string, int, nil, ...
 	value interface{}
-	id    int
+	// id is the lexer token ID, using tok* symbols defined in glop.y.
+	id int
 }
 
+// Value implements nodes.Token interface.
 func (t tokenInfo) Value() interface{} {
 	return t.value
 }
 
 // lexer is a 'go yacc' compatible lexer object.
 type lexer struct {
-	input   string
-	start   int
-	pos     int
+	input string
+
+	// start indicates the index of the beginning of the token being parsed. This
+	// is relative to input current data.
+	start int
+	// pos is the index in input of the next rune to be read.
+	pos int
+	// current line number of the start position.
+	line    int
 	tokens  chan tokenInfo
 	errors  []string
 	program nodes.Node
 }
 
+// peek looks one rune ahead in the input but does not advance the current
+// pointer. If the input is invalid, it will return utf8.RuneError.
 func (l *lexer) peek() rune {
 	if l.pos >= len(l.input) {
 		return EOF
@@ -47,19 +67,32 @@ func (l *lexer) peek() rune {
 	return r
 }
 
-func (l *lexer) advance() {
-	_, w := utf8.DecodeRuneInString(l.input[l.pos:])
+// advance moves the current position by one rune. Returns the rune encountered
+// or utf8.RuneError if there was an issue.
+func (l *lexer) advance() rune {
+	r, w := utf8.DecodeRuneInString(l.input[l.pos:])
 	l.pos += w
+	return r
 }
 
 func (l *lexer) accept() tokenInfo {
 	t := tokenInfo{
-		text: l.input[l.start:l.pos],
+		text:  l.input[l.start:l.pos],
+		start: l.start,
+		line:  l.line,
 	}
 	l.start = l.pos
+
+	for _, r := range t.text {
+		if r == '\n' {
+			l.line++
+		}
+	}
+
 	return t
 }
 
+// stateIdentifier parses arbitrary strings & numbers.
 func (l *lexer) stateIdentifier() stateFn {
 	var next stateFn
 	for next == nil {
@@ -74,6 +107,8 @@ func (l *lexer) stateIdentifier() stateFn {
 			next = l.stateSpace
 		case r == EOF:
 			next = l.stateEnd
+		case r == utf8.RuneError:
+			//
 		default:
 			l.advance()
 		}
@@ -167,6 +202,7 @@ func newLexer(input string) *lexer {
 	return l
 }
 
+// Parse analyzes the provided input and returns the correspond AST.
 func Parse(input string) nodes.Node {
 	l := newLexer(input)
 	yyParse(l)

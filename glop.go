@@ -45,6 +45,10 @@ func main() {
 	}
 
 	ctx := runner.NewContext(nil)
+	ctx.Set("exit", func() {
+		os.Exit(0)
+	})
+
 	for i := 0; ; i++ {
 		s, err := linenoise.Line(fmt.Sprintf("In [%d]: ", i))
 

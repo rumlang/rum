@@ -1,8 +1,8 @@
 
 //line parser/glop.y:2
 // Package parser contains the logic to extract the structure of the code. This
-// file contains the YACC grammar. See README.md to the corresponding y.go from
-// it.
+// file contains the YACC grammar. See README.md to generate the corresponding
+// y.go from it.
 package parser
 import __yyfmt__ "fmt"
 //line parser/glop.y:5

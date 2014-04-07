@@ -7,17 +7,20 @@ import (
 func TestLexer(t *testing.T) {
 	tests := map[string][]tokenInfo{
 		"foo": []tokenInfo{
-			{text: "foo", id: tokIdentifier, value: "foo"},
+			{text: "foo", start: 0, id: tokIdentifier, value: "foo"},
 		},
 		"(foo)": []tokenInfo{
-			{text: "(", id: tokOpen},
-			{text: "foo", id: tokIdentifier, value: "foo"},
-			{text: ")", id: tokClose},
+			{text: "(", start: 0, id: tokOpen},
+			{text: "foo", start: 1, id: tokIdentifier, value: "foo"},
+			{text: ")", start: 4, id: tokClose},
 		},
 		" (  foo ) ": []tokenInfo{
-			{text: "(", id: tokOpen},
-			{text: "foo", id: tokIdentifier, value: "foo"},
-			{text: ")", id: tokClose},
+			{text: "(", start: 1, id: tokOpen},
+			{text: "foo", start: 4, id: tokIdentifier, value: "foo"},
+			{text: ")", start: 8, id: tokClose},
+		},
+		"\nfoo": []tokenInfo{
+			{text: "foo", start: 1, line: 1, id: tokIdentifier, value: "foo"},
 		},
 	}
 
@@ -29,7 +32,7 @@ func TestLexer(t *testing.T) {
 			tokens = append(tokens, t)
 		}
 		if len(tokens) != len(expected) {
-			t.Fatalf("Invalid number of tokens found; expected %v, found %v", expected, tokens)
+			t.Fatalf("Invalid number of tokens found; expected %+v, found %+v", expected, tokens)
 		}
 		for i, token := range tokens {
 			if token != expected[i] {
@@ -40,6 +43,8 @@ func TestLexer(t *testing.T) {
 }
 
 func TestParsing(t *testing.T) {
+	yyDebug = 1
+
 	tests := map[string]int{
 		"foo":               0,
 		"a(b":               -1,
@@ -48,6 +53,7 @@ func TestParsing(t *testing.T) {
 		"(a b)":             2,
 		"(a (b c))":         2,
 		"(a (b c) d (e f))": 4,
+		"(a\nb)":            2,
 	}
 
 	for input, count := range tests {
