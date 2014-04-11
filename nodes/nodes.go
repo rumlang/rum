@@ -69,16 +69,10 @@ func (e *Expr) String() string {
 	return fmt.Sprintf("<expr>(%s)", strings.Join(elt, " "))
 }
 
-func NewExpr(atom Node, list Node) *Expr {
-	e := &Expr{}
-	if atom != nil {
-		e.children = append(e.children, atom)
+func NewExpr(atoms []Node) *Expr {
+	return &Expr{
+		children: atoms,
 	}
-	if list != nil {
-		e.children = append(e.children, list.Children()...)
-	}
-
-	return e
 }
 
 type Identifier struct {

@@ -5,16 +5,25 @@
 package parser
 
 import (
+	"fmt"
 	"strconv"
 	"unicode"
 	"unicode/utf8"
 
-	log "github.com/golang/glog"
 	"github.com/palats/glop/nodes"
 )
 
 // EOF is an arbitrary rune to indicate end of input from the lexer functions.
 const EOF rune = 0
+
+const (
+	_ = iota
+	tokOpen
+	tokClose
+	tokIdentifier
+	tokInteger
+	tokSpace
+)
 
 // stateFn is the prototype for function of the lexer state machine. They don't
 // take any parameter - data is shared through the object.
@@ -38,6 +47,51 @@ type tokenInfo struct {
 // Value implements nodes.Token interface.
 func (t tokenInfo) Value() interface{} {
 	return t.value
+}
+
+func (t tokenInfo) Nud(ctx Context) interface{} {
+	switch t.id {
+	case tokOpen:
+		r := []nodes.Node{nodes.NewExpr(ctx.Expression(1).([]nodes.Node))}
+		// Assumes a ')'
+		ctx.Advance()
+		return r
+	/*case tokClose:
+	return []nodes.Node{}*/
+	case tokIdentifier:
+		return []nodes.Node{nodes.NewIdentifier(t)}
+	case tokInteger:
+		return []nodes.Node{nodes.NewInteger(t)}
+	}
+	panic(fmt.Sprintf("Invalid nud for token: %+v", t))
+}
+
+func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
+	switch t.id {
+	case tokOpen:
+		atom := nodes.NewExpr(ctx.Expression(1).([]nodes.Node))
+		// Assumes a ')'
+		ctx.Advance()
+		return append(left.([]nodes.Node), atom)
+	/*case tokClose:
+	return left*/
+	case tokIdentifier:
+		return append(left.([]nodes.Node), nodes.NewIdentifier(t))
+	case tokInteger:
+		return append(left.([]nodes.Node), nodes.NewInteger(t))
+	}
+	panic(fmt.Sprintf("Invalid led for token %+v ; left=%v", t, left))
+}
+
+func (t tokenInfo) Lbp() int {
+	return map[int]int{
+		0: 0,
+		// XXX add space
+		tokOpen:       30,
+		tokClose:      1,
+		tokIdentifier: 20,
+		tokInteger:    20,
+	}[t.id]
 }
 
 // lexer is a 'go yacc' compatible lexer object.
@@ -178,19 +232,14 @@ func (l *lexer) run() {
 	close(l.tokens)
 }
 
-func (l *lexer) Lex(lval *yySymType) int {
+func (l *lexer) Next() Token {
 	token, ok := <-l.tokens
 	if !ok {
-		return 0 // EOF
+		token = tokenInfo{
+			id: 0,
+		}
 	}
-
-	lval.token = token
-	return token.id
-}
-
-func (l *lexer) Error(s string) {
-	l.errors = append(l.errors, s)
-	log.Errorf("parse error: %s\n", s)
+	return token
 }
 
 func newLexer(input string) *lexer {
@@ -200,11 +249,4 @@ func newLexer(input string) *lexer {
 	}
 	go l.run()
 	return l
-}
-
-// Parse analyzes the provided input and returns the correspond AST.
-func Parse(input string) nodes.Node {
-	l := newLexer(input)
-	yyParse(l)
-	return l.program
 }

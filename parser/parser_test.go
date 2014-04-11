@@ -1,8 +1,6 @@
 package parser
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestLexer(t *testing.T) {
 	tests := map[string][]tokenInfo{
@@ -43,8 +41,6 @@ func TestLexer(t *testing.T) {
 }
 
 func TestParsing(t *testing.T) {
-	yyDebug = 1
-
 	tests := map[string]int{
 		"foo":               0,
 		"a(b":               -1,
@@ -57,22 +53,22 @@ func TestParsing(t *testing.T) {
 	}
 
 	for input, count := range tests {
-		l := newLexer(input)
-		yyParse(l)
+		r, err := Parse(input)
 
 		if count < 0 {
-			if len(l.errors) == 0 {
+			if err == nil {
 				t.Errorf("Input %q parsed instead of generating error", input)
 			}
 			continue
 		}
 
-		if len(l.errors) != 0 {
-			t.Errorf("Input %q - parsing errors: %v", input, l.errors)
+		if err != nil {
+			t.Errorf("Input %q - parsing errors: %v", input, err)
+			continue
 		}
 
-		if len(l.program.Children()) != count {
-			t.Errorf("Input %q - expecting %d children, got %d: %v", input, count, len(l.program.Children()), l.program.Children())
+		if count != len(r.Children()) {
+			t.Errorf("Input %q - expected %d children, got %d: %v", input, count, len(r.Children()), r)
 		}
 	}
 }
