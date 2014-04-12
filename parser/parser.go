@@ -7,21 +7,21 @@ import (
 )
 
 type Context interface {
-	Expression(rbp int) interface{}
-	Advance() Token
+	Expression(rbp int) (interface{}, error)
+	Advance() (Token, error)
 }
 
 type Token interface {
 	// Nud is 'Null denotation'
-	Nud(ctx Context) interface{}
+	Nud(ctx Context) (interface{}, error)
 	// Led is 'Left denotation'
-	Led(ctx Context, left interface{}) interface{}
+	Led(ctx Context, left interface{}) (interface{}, error)
 	// Lbp is 'Left Binding Priority'
 	Lbp() int
 }
 
 type Lexer interface {
-	Next() Token
+	Next() (Token, error)
 }
 
 type Parser struct {
@@ -33,20 +33,31 @@ type Parser struct {
 
 // Advance get the next token from the lexer and return what was the current
 // one.
-func (p *Parser) Advance() Token {
+func (p *Parser) Advance() (Token, error) {
 	t := p.token
-	p.token = p.lex.Next()
-	return t
+	next, err := p.lex.Next()
+	p.token = next
+	return t, err
 }
 
-func (p *Parser) Expression(rbp int) interface{} {
-	t := p.Advance()
-	left := t.Nud(p)
-	for rbp < p.token.Lbp() {
-		t = p.Advance()
-		left = t.Led(p, left)
+func (p *Parser) Expression(rbp int) (interface{}, error) {
+	t, err := p.Advance()
+	if err != nil {
+		return nil, err
 	}
-	return left
+	left, err := t.Nud(p)
+	if err != nil {
+		return nil, err
+	}
+	for rbp < p.token.Lbp() {
+		if t, err = p.Advance(); err != nil {
+			return nil, err
+		}
+		if left, err = t.Led(p, left); err != nil {
+			return nil, err
+		}
+	}
+	return left, nil
 }
 
 func Parse(input string) (nodes.Node, error) {
@@ -55,7 +66,11 @@ func Parse(input string) (nodes.Node, error) {
 	}
 	// Make the first token available.
 	p.Advance()
-	result := p.Expression(0).([]nodes.Node)
+	n, err := p.Expression(0)
+	if err != nil {
+		return nil, err
+	}
+	result := n.([]nodes.Node)
 	if len(result) == 0 {
 		return nil, fmt.Errorf("no node found")
 	}
