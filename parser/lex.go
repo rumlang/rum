@@ -53,10 +53,18 @@ func (t tokenInfo) Value() interface{} {
 func (t tokenInfo) Nud(ctx Context) interface{} {
 	switch t.id {
 	case tokOpen:
-		r := []nodes.Node{nodes.NewExpr(ctx.Expression(1).([]nodes.Node))}
+		var sublist []nodes.Node
+		if ctx.Peek().(tokenInfo).id != tokClose {
+			sublist = ctx.Expression(5).([]nodes.Node)
+		}
 		// Assumes a ')'
-		ctx.Advance()
-		return r
+		t := ctx.Peek().(tokenInfo)
+		if t.id != tokClose {
+			ctx.Error(fmt.Sprintf("invalid token - expected ')', got: %q", t.text))
+		} else {
+			ctx.Advance()
+		}
+		return []nodes.Node{nodes.NewExpr(sublist)}
 	case tokClose:
 		// Can happen in the case of list without any element: "()"
 		return []nodes.Node{}
@@ -71,10 +79,18 @@ func (t tokenInfo) Nud(ctx Context) interface{} {
 func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
 	switch t.id {
 	case tokOpen:
-		atom := nodes.NewExpr(ctx.Expression(1).([]nodes.Node))
+		var sublist []nodes.Node
+		if ctx.Peek().(tokenInfo).id != tokClose {
+			sublist = ctx.Expression(5).([]nodes.Node)
+		}
 		// Assumes a ')'
-		ctx.Advance()
-		return append(left.([]nodes.Node), atom)
+		t := ctx.Peek().(tokenInfo)
+		if t.id != tokClose {
+			ctx.Error(fmt.Sprintf("invalid token - expected ')', got: %q", t.text))
+		} else {
+			ctx.Advance()
+		}
+		return append(left.([]nodes.Node), nodes.NewExpr(sublist))
 	// case tokClose: // Should never happen.
 	case tokIdentifier:
 		return append(left.([]nodes.Node), nodes.NewIdentifier(t))
@@ -88,7 +104,7 @@ func (t tokenInfo) Lbp() int {
 	return map[int]int{
 		tokEOF:        0,
 		tokOpen:       30,
-		tokClose:      1,
+		tokClose:      5,
 		tokIdentifier: 20,
 		tokInteger:    20,
 	}[t.id]

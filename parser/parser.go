@@ -1,7 +1,9 @@
 package parser
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/palats/glop/nodes"
 )
@@ -9,6 +11,8 @@ import (
 type Context interface {
 	Expression(rbp int) interface{}
 	Advance() Token
+	Peek() Token
+	Error(string)
 }
 
 type Token interface {
@@ -29,6 +33,9 @@ type Parser struct {
 
 	// token contains the next token to be encountered.
 	token Token
+
+	// All errors coming from the tokens nud/led functions.
+	errors []string
 }
 
 // Advance get the next token from the lexer and return what was the current
@@ -39,14 +46,22 @@ func (p *Parser) Advance() Token {
 	return t
 }
 
+func (p *Parser) Peek() Token {
+	return p.token
+}
+
 func (p *Parser) Expression(rbp int) interface{} {
 	t := p.Advance()
 	left := t.Nud(p)
-	for rbp < p.token.Lbp() {
+	for rbp < p.Peek().Lbp() {
 		t = p.Advance()
 		left = t.Led(p, left)
 	}
 	return left
+}
+
+func (p *Parser) Error(s string) {
+	p.errors = append(p.errors, s)
 }
 
 func Parse(input string) (nodes.Node, error) {
@@ -62,5 +77,10 @@ func Parse(input string) (nodes.Node, error) {
 	if len(result) != 1 {
 		return nil, fmt.Errorf("obtained more than one node: %v", result)
 	}
-	return result[0], nil
+
+	var err error
+	if len(p.errors) > 0 {
+		err = errors.New(strings.Join(p.errors, "\n"))
+	}
+	return result[0], err
 }
