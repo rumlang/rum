@@ -18,7 +18,6 @@ const EOF rune = 0
 
 const (
 	_ = iota
-	tokEOF
 	tokOpen
 	tokClose
 	tokIdentifier
@@ -50,51 +49,43 @@ func (t tokenInfo) Value() interface{} {
 	return t.value
 }
 
-func (t tokenInfo) Nud(ctx Context) (interface{}, error) {
+func (t tokenInfo) Nud(ctx Context) interface{} {
 	switch t.id {
 	case tokOpen:
-		n, err := ctx.Expression(1)
-		if err != nil {
-			return nil, err
-		}
-		r := []nodes.Node{nodes.NewExpr(n.([]nodes.Node))}
+		r := []nodes.Node{nodes.NewExpr(ctx.Expression(1).([]nodes.Node))}
 		// Assumes a ')'
 		ctx.Advance()
-		return r, nil
+		return r
 	case tokClose:
 		// Can happen in the case of list without any element: "()"
-		return []nodes.Node{}, nil
+		return []nodes.Node{}
 	case tokIdentifier:
-		return []nodes.Node{nodes.NewIdentifier(t)}, nil
+		return []nodes.Node{nodes.NewIdentifier(t)}
 	case tokInteger:
-		return []nodes.Node{nodes.NewInteger(t)}, nil
+		return []nodes.Node{nodes.NewInteger(t)}
 	}
 	panic(fmt.Sprintf("Invalid nud for token: %+v", t))
 }
 
-func (t tokenInfo) Led(ctx Context, left interface{}) (interface{}, error) {
+func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
 	switch t.id {
 	case tokOpen:
-		n, err := ctx.Expression(1)
-		if err != nil {
-			return nil, err
-		}
-		atom := nodes.NewExpr(n.([]nodes.Node))
+		atom := nodes.NewExpr(ctx.Expression(1).([]nodes.Node))
 		// Assumes a ')'
 		ctx.Advance()
-		return append(left.([]nodes.Node), atom), nil
+		return append(left.([]nodes.Node), atom)
 	// case tokClose: // Should never happen.
 	case tokIdentifier:
-		return append(left.([]nodes.Node), nodes.NewIdentifier(t)), nil
+		return append(left.([]nodes.Node), nodes.NewIdentifier(t))
 	case tokInteger:
-		return append(left.([]nodes.Node), nodes.NewInteger(t)), nil
+		return append(left.([]nodes.Node), nodes.NewInteger(t))
 	}
 	panic(fmt.Sprintf("Invalid led for token %+v ; left=%v", t, left))
 }
 
 func (t tokenInfo) Lbp() int {
 	return map[int]int{
-		tokEOF:        0,
+		0:             0,
 		tokOpen:       30,
 		tokClose:      1,
 		tokIdentifier: 20,
@@ -240,14 +231,14 @@ func (l *lexer) run() {
 	close(l.tokens)
 }
 
-func (l *lexer) Next() (Token, error) {
+func (l *lexer) Next() Token {
 	token, ok := <-l.tokens
 	if !ok {
 		token = tokenInfo{
-			id: tokEOF,
+			id: 0,
 		}
 	}
-	return token, nil
+	return token
 }
 
 func newLexer(input string) *lexer {
