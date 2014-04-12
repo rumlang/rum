@@ -18,6 +18,7 @@ const EOF rune = 0
 
 const (
 	_ = iota
+	tokEOF
 	tokOpen
 	tokClose
 	tokIdentifier
@@ -85,7 +86,7 @@ func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
 
 func (t tokenInfo) Lbp() int {
 	return map[int]int{
-		0:             0,
+		tokEOF:        0,
 		tokOpen:       30,
 		tokClose:      1,
 		tokIdentifier: 20,
@@ -235,7 +236,7 @@ func (l *lexer) Next() Token {
 	token, ok := <-l.tokens
 	if !ok {
 		token = tokenInfo{
-			id: 0,
+			id: tokEOF,
 		}
 	}
 	return token
