@@ -16,7 +16,8 @@ type Context interface {
 }
 
 type Token interface {
-	// Nud is 'Null denotation'
+	// Nud is 'Null denotation'. If it returns nil, the parser will skip it and
+	// use the next token to start the expression.
 	Nud(ctx Context) interface{}
 	// Led is 'Left denotation'
 	Led(ctx Context, left interface{}) interface{}
@@ -51,11 +52,13 @@ func (p *Parser) Peek() Token {
 }
 
 func (p *Parser) Expression(rbp int) interface{} {
-	t := p.Advance()
-	left := t.Nud(p)
+	var left interface{}
+
+	for left == nil {
+		left = p.Advance().Nud(p)
+	}
 	for rbp < p.Peek().Lbp() {
-		t = p.Advance()
-		left = t.Led(p, left)
+		left = p.Advance().Led(p, left)
 	}
 	return left
 }

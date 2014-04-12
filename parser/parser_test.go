@@ -50,6 +50,8 @@ func TestParsing(t *testing.T) {
 		"(a (b c))":         2,
 		"(a (b c) d (e f))": 4,
 		"(a\nb)":            2,
+		"a)b":               -1,
+		")b":                -1,
 	}
 
 	for input, count := range tests {

@@ -57,7 +57,6 @@ func (t tokenInfo) Nud(ctx Context) interface{} {
 		if ctx.Peek().(tokenInfo).id != tokClose {
 			sublist = ctx.Expression(5).([]nodes.Node)
 		}
-		// Assumes a ')'
 		t := ctx.Peek().(tokenInfo)
 		if t.id != tokClose {
 			ctx.Error(fmt.Sprintf("invalid token - expected ')', got: %q", t.text))
@@ -65,15 +64,15 @@ func (t tokenInfo) Nud(ctx Context) interface{} {
 			ctx.Advance()
 		}
 		return []nodes.Node{nodes.NewExpr(sublist)}
-	case tokClose:
-		// Can happen in the case of list without any element: "()"
-		return []nodes.Node{}
+	// case tokClose: // Shoud never happen
 	case tokIdentifier:
 		return []nodes.Node{nodes.NewIdentifier(t)}
 	case tokInteger:
 		return []nodes.Node{nodes.NewInteger(t)}
 	}
-	panic(fmt.Sprintf("Invalid nud for token: %+v", t))
+
+	ctx.Error(fmt.Sprintf("unexpected %q (token id %d) at the beginning of an expression", t.text, t.id))
+	return nil
 }
 
 func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
@@ -83,7 +82,6 @@ func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
 		if ctx.Peek().(tokenInfo).id != tokClose {
 			sublist = ctx.Expression(5).([]nodes.Node)
 		}
-		// Assumes a ')'
 		t := ctx.Peek().(tokenInfo)
 		if t.id != tokClose {
 			ctx.Error(fmt.Sprintf("invalid token - expected ')', got: %q", t.text))
@@ -97,7 +95,9 @@ func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
 	case tokInteger:
 		return append(left.([]nodes.Node), nodes.NewInteger(t))
 	}
-	panic(fmt.Sprintf("Invalid led for token %+v ; left=%v", t, left))
+
+	ctx.Error(fmt.Sprintf("unexpected %q (token id %d) in an expression", t.text, t.id))
+	return left
 }
 
 func (t tokenInfo) Lbp() int {
