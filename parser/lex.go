@@ -56,8 +56,9 @@ func (t tokenInfo) Nud(ctx Context) interface{} {
 		// Assumes a ')'
 		ctx.Advance()
 		return r
-	/*case tokClose:
-	return []nodes.Node{}*/
+	case tokClose:
+		// Can happen in the case of list without any element: "()"
+		return []nodes.Node{}
 	case tokIdentifier:
 		return []nodes.Node{nodes.NewIdentifier(t)}
 	case tokInteger:
@@ -73,8 +74,7 @@ func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
 		// Assumes a ')'
 		ctx.Advance()
 		return append(left.([]nodes.Node), atom)
-	/*case tokClose:
-	return left*/
+	// case tokClose: // Should never happen.
 	case tokIdentifier:
 		return append(left.([]nodes.Node), nodes.NewIdentifier(t))
 	case tokInteger:
@@ -85,8 +85,7 @@ func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
 
 func (t tokenInfo) Lbp() int {
 	return map[int]int{
-		0: 0,
-		// XXX add space
+		0:             0,
 		tokOpen:       30,
 		tokClose:      1,
 		tokIdentifier: 20,
@@ -94,7 +93,7 @@ func (t tokenInfo) Lbp() int {
 	}[t.id]
 }
 
-// lexer is a 'go yacc' compatible lexer object.
+// lexer extract the tokens seen in the input.
 type lexer struct {
 	input string
 
