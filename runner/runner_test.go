@@ -8,7 +8,11 @@ import (
 )
 
 func TestQuote(t *testing.T) {
-	n := ParseEval("(quote (+ 1 2))").(nodes.Node)
+	r, err := ParseEval("(quote (+ 1 2))")
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := r.(nodes.Node)
 
 	if len(n.Children()) != 3 {
 		t.Errorf("Expected 3 children, got: %v", n.Children())
@@ -36,7 +40,10 @@ func TestValid(t *testing.T) {
 	}
 
 	for input, expected := range valid {
-		r := ParseEval(input)
+		r, err := ParseEval(input)
+		if err != nil {
+			t.Fatal(err)
+		}
 		if !reflect.DeepEqual(r, expected) {
 			t.Errorf("Input %q -- expected <%T>%#+v, got: <%T>%#+v", input, expected, expected, r, r)
 		}

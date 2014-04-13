@@ -74,16 +74,18 @@ func Parse(input string) (nodes.Node, error) {
 	// Make the first token available.
 	p.Advance()
 	result := p.Expression(0).([]nodes.Node)
+	var n nodes.Node
 	if len(result) == 0 {
-		return nil, fmt.Errorf("no node found")
-	}
-	if len(result) != 1 {
-		return nil, fmt.Errorf("obtained more than one node: %v", result)
+		p.Error("no node found")
+	} else if len(result) != 1 {
+		p.Error(fmt.Sprintf("obtained more than one node: %v", result))
+	} else {
+		n = result[0]
 	}
 
 	var err error
 	if len(p.errors) > 0 {
-		err = errors.New(strings.Join(p.errors, "\n"))
+		err = errors.New(strings.Join(p.errors, " -- "))
 	}
-	return result[0], err
+	return n, err
 }
