@@ -42,18 +42,19 @@ func TestLexer(t *testing.T) {
 
 func TestParsing(t *testing.T) {
 	tests := map[string]int{
-		"foo":               0,
+		"":                  -1,
+		")":                 -1,
+		"(":                 -1,
+		"a)b":               -1,
+		")b":                -1,
 		"a(b":               -1,
 		"()":                0,
+		"foo":               0,
 		"(foo)":             1,
 		"(a b)":             2,
 		"(a (b c))":         2,
 		"(a (b c) d (e f))": 4,
 		"(a\nb)":            2,
-		"a)b":               -1,
-		")b":                -1,
-		// ")":                 -1,
-		// "(": -1,
 	}
 
 	for input, count := range tests {

@@ -16,12 +16,14 @@ type Context interface {
 }
 
 type Token interface {
-	// Nud is 'Null denotation'. If it returns nil, the parser will skip it and
-	// use the next token to start the expression.
+	// Nud is 'Null denotation'. This is used in a top down parser when a token
+	// is encountered at the beginning of an expression.
 	Nud(ctx Context) interface{}
-	// Led is 'Left denotation'
+	// Led is 'Left denotation'. This is used in a top down parser when a token
+	// is encountered after the beginning of the expression. 'left' contains what
+	// was previously obtained with Nud/Led of the previous token.
 	Led(ctx Context, left interface{}) interface{}
-	// Lbp is 'Left Binding Priority'
+	// Lbp is 'Left Binding Priority'.
 	Lbp() int
 }
 
@@ -52,11 +54,7 @@ func (p *Parser) Peek() Token {
 }
 
 func (p *Parser) Expression(rbp int) interface{} {
-	var left interface{}
-
-	for left == nil {
-		left = p.Advance().Nud(p)
-	}
+	left := p.Advance().Nud(p)
 	for rbp < p.Peek().Lbp() {
 		left = p.Advance().Led(p, left)
 	}
@@ -73,7 +71,7 @@ func Parse(input string) (nodes.Node, error) {
 	}
 	// Make the first token available.
 	p.Advance()
-	result := p.Expression(0).([]nodes.Node)
+	result := p.Expression(tokenPriorities[tokEOF]).([]nodes.Node)
 	var n nodes.Node
 	if len(result) == 0 {
 		p.Error("no node found")

@@ -26,6 +26,17 @@ const (
 	tokSpace
 )
 
+var tokenPriorities = map[int]int{
+	tokEOF:  0,
+	tokOpen: 30,
+	// Do not use 0 for closing parenthesis - this way we can trigger an error
+	// when we don't reach the end of the stream (e.g., "a)b") instead of
+	// considering that the parsing is done.
+	tokClose:      5,
+	tokIdentifier: 20,
+	tokInteger:    20,
+}
+
 // stateFn is the prototype for function of the lexer state machine. They don't
 // take any parameter - data is shared through the object.
 type stateFn func() stateFn
@@ -50,12 +61,15 @@ func (t tokenInfo) Value() interface{} {
 	return t.value
 }
 
+// Nud implements the Token interface for the top down parser.
+// It always returns a []nodes.Node{}. In case of errors, it will add an error
+// through the context and return an empty list.
 func (t tokenInfo) Nud(ctx Context) interface{} {
 	switch t.id {
 	case tokOpen:
 		var sublist []nodes.Node
 		if ctx.Peek().(tokenInfo).id != tokClose {
-			sublist = ctx.Expression(5).([]nodes.Node)
+			sublist = ctx.Expression(tokenPriorities[tokClose]).([]nodes.Node)
 		}
 		t := ctx.Peek().(tokenInfo)
 		if t.id != tokClose {
@@ -72,15 +86,18 @@ func (t tokenInfo) Nud(ctx Context) interface{} {
 	}
 
 	ctx.Error(fmt.Sprintf("unexpected %q (token id %d) at the beginning of an expression", t.text, t.id))
-	return nil
+	return []nodes.Node{}
 }
 
+// Led implements the Token interface for the top down parser.
+// It always returns a []nodes.Node{}. In case of errors, it will add an error
+// through the context and ignore the token.
 func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
 	switch t.id {
 	case tokOpen:
 		var sublist []nodes.Node
 		if ctx.Peek().(tokenInfo).id != tokClose {
-			sublist = ctx.Expression(5).([]nodes.Node)
+			sublist = ctx.Expression(tokenPriorities[tokClose]).([]nodes.Node)
 		}
 		t := ctx.Peek().(tokenInfo)
 		if t.id != tokClose {
@@ -101,13 +118,7 @@ func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
 }
 
 func (t tokenInfo) Lbp() int {
-	return map[int]int{
-		tokEOF:        0,
-		tokOpen:       30,
-		tokClose:      5,
-		tokIdentifier: 20,
-		tokInteger:    20,
-	}[t.id]
+	return tokenPriorities[t.id]
 }
 
 // lexer extract the tokens seen in the input.
