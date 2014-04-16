@@ -27,28 +27,26 @@ type Context interface {
 
 type Internal func(Context, ...Node) interface{}
 
-type Expr struct {
-	children []Node
+type Expr []Node
+
+func (e Expr) Children() []Node {
+	return e
 }
 
-func (e *Expr) Children() []Node {
-	return e.children
-}
-
-func (e *Expr) Eval(ctx Context) interface{} {
+func (e Expr) Eval(ctx Context) interface{} {
 	log.Info("Expr:Eval", e)
-	if len(e.children) <= 0 {
+	if len(e.Children()) <= 0 {
 		return nil
 	}
 
-	fn := e.children[0].Eval(ctx)
+	fn := e.Children()[0].Eval(ctx)
 
 	if internal, ok := fn.(Internal); ok {
-		return internal(ctx, e.children[1:]...)
+		return internal(ctx, e.Children()[1:]...)
 	}
 
 	var args []reflect.Value
-	for _, children := range e.children[1:] {
+	for _, children := range e.Children()[1:] {
 		args = append(args, reflect.ValueOf(children.Eval(ctx)))
 	}
 	result := reflect.ValueOf(fn).Call(args)
@@ -61,64 +59,54 @@ func (e *Expr) Eval(ctx Context) interface{} {
 	panic("Multiple arguments unsupportted")
 }
 
-func (e *Expr) String() string {
+func (e Expr) String() string {
 	var elt []string
-	for _, node := range e.children {
+	for _, node := range e.Children() {
 		elt = append(elt, node.String())
 	}
 	return fmt.Sprintf("<expr>(%s)", strings.Join(elt, " "))
 }
 
-func NewExpr(atoms []Node) *Expr {
-	return &Expr{
-		children: atoms,
-	}
+func NewExpr(atoms []Node) Expr {
+	return Expr(atoms)
 }
 
-type Identifier struct {
-	value string
-}
+type Identifier string
 
-func (i *Identifier) Children() []Node {
+func (i Identifier) Children() []Node {
 	return nil
 }
 
-func (i *Identifier) Eval(ctx Context) interface{} {
-	return ctx.Get(i.value)
+func (i Identifier) Eval(ctx Context) interface{} {
+	return ctx.Get(string(i))
 }
 
-func (i *Identifier) String() string {
-	return fmt.Sprintf("<id>%q", i.value)
+func (i Identifier) String() string {
+	return fmt.Sprintf("<id>%q", string(i))
 }
 
-func (i *Identifier) Value() string {
-	return i.value
+func (i Identifier) Value() string {
+	return string(i)
 }
 
-func NewIdentifier(token Token) *Identifier {
-	return &Identifier{
-		value: token.Value().(string),
-	}
+func NewIdentifier(token Token) Identifier {
+	return Identifier(token.Value().(string))
 }
 
-type Integer struct {
-	value int64
-}
+type Integer int64
 
-func (i *Integer) Children() []Node {
+func (i Integer) Children() []Node {
 	return nil
 }
 
-func (i *Integer) Eval(ctx Context) interface{} {
-	return i.value
+func (i Integer) Eval(ctx Context) interface{} {
+	return int64(i)
 }
 
-func (i *Integer) String() string {
-	return fmt.Sprintf("<integer>%d", i.value)
+func (i Integer) String() string {
+	return fmt.Sprintf("<integer>%d", int64(i))
 }
 
-func NewInteger(token Token) *Integer {
-	return &Integer{
-		value: token.Value().(int64),
-	}
+func NewInteger(token Token) Integer {
+	return Integer(token.Value().(int64))
 }

@@ -69,7 +69,7 @@ func Define(ctx nodes.Context, args ...nodes.Node) interface{} {
 	if len(args) != 2 {
 		panic("Invalid arguments")
 	}
-	s := args[0].(*nodes.Identifier).Value()
+	s := args[0].(nodes.Identifier).Value()
 	return ctx.Set(s, args[1].Eval(ctx))
 }
 
@@ -100,7 +100,7 @@ func Lambda(ctx nodes.Context, args ...nodes.Node) interface{} {
 
 	names := []string{}
 	for _, n := range args[0].Children() {
-		names = append(names, n.(*nodes.Identifier).Value())
+		names = append(names, n.(nodes.Identifier).Value())
 	}
 	implNode := args[1]
 	impl := func(ctx nodes.Context, args ...nodes.Node) interface{} {
