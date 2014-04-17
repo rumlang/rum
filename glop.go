@@ -9,7 +9,6 @@ import (
 
 	"github.com/GeertJohan/go.linenoise"
 	log "github.com/golang/glog"
-	"github.com/palats/glop/nodes"
 	"github.com/palats/glop/parser"
 	"github.com/palats/glop/runner"
 )
@@ -52,6 +51,9 @@ func main() {
 
 	for i := 0; ; i++ {
 		s, err := linenoise.Line(fmt.Sprintf("In [%d]: ", i))
+		if err == linenoise.KillSignalError {
+			return
+		}
 
 		if len(strings.TrimSpace(s)) > 0 {
 			err := linenoise.AddHistory(s)
@@ -60,14 +62,11 @@ func main() {
 			}
 		}
 
-		var tree nodes.Node
-		tree, err = parser.Parse(s)
-
-		if err != nil {
-			if err == linenoise.KillSignalError {
-				return
+		tree, errs := parser.Parse(s)
+		if len(errs) > 0 {
+			for _, err := range errs {
+				fmt.Fprintf(os.Stderr, "Err [%d]: %s\n", i, err.Error())
 			}
-			fmt.Fprintf(os.Stderr, "Err [%d]: %s\n", i, err.Error())
 			continue
 		}
 

@@ -73,7 +73,7 @@ func (t tokenInfo) Nud(ctx Context) interface{} {
 		}
 		t := ctx.Peek().(tokenInfo)
 		if t.id != tokClose {
-			ctx.Error(fmt.Sprintf("invalid token - expected ')', got: %q", t.text))
+			ctx.Error(fmt.Errorf("invalid token - expected ')', got: %q", t.text))
 		} else {
 			ctx.Advance()
 		}
@@ -85,7 +85,7 @@ func (t tokenInfo) Nud(ctx Context) interface{} {
 		return []nodes.Node{nodes.NewInteger(t)}
 	}
 
-	ctx.Error(fmt.Sprintf("unexpected %q (token id %d) at the beginning of an expression", t.text, t.id))
+	ctx.Error(fmt.Errorf("unexpected %q (token id %d) at the beginning of an expression", t.text, t.id))
 	return []nodes.Node{}
 }
 
@@ -101,7 +101,7 @@ func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
 		}
 		t := ctx.Peek().(tokenInfo)
 		if t.id != tokClose {
-			ctx.Error(fmt.Sprintf("invalid token - expected ')', got: %q", t.text))
+			ctx.Error(fmt.Errorf("invalid token - expected ')', got: %q", t.text))
 		} else {
 			ctx.Advance()
 		}
@@ -113,7 +113,7 @@ func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
 		return append(left.([]nodes.Node), nodes.NewInteger(t))
 	}
 
-	ctx.Error(fmt.Sprintf("unexpected %q (token id %d) in an expression", t.text, t.id))
+	ctx.Error(fmt.Errorf("unexpected %q (token id %d) in an expression", t.text, t.id))
 	return left
 }
 

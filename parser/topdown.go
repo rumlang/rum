@@ -16,7 +16,7 @@ type Context interface {
 	Peek() Token
 	// Error indicates that something went wrong. The parsing will still continue
 	// after that, allowing for multiple errors to be found.
-	Error(string)
+	Error(error)
 }
 
 // Token must be implemented by the data returned by the lexer provided to the
@@ -29,11 +29,15 @@ type Token interface {
 	// is encountered after the beginning of the expression. 'left' contains what
 	// was previously obtained with Nud/Led of the previous token.
 	Led(ctx Context, left interface{}) interface{}
-	// Lbp is 'Left Binding Priority'.
+	// Lbp is 'Left Binding Priority'. The value 0 is used as right binding
+	// priority in TopDownParse - which usually means that "end of stream" should
+	// have an lbp of 0.
 	Lbp() int
 }
 
+// Lexer is the interface that the parser expects to get input tokens.
 type Lexer interface {
+	// Next provide the next available token.
 	Next() Token
 }
 
@@ -45,7 +49,7 @@ type TopDown struct {
 	token Token
 
 	// All errors coming from the tokens nud/led functions.
-	errors []string
+	errors []error
 }
 
 // Advance returns the incoming token, and move to the next one.
@@ -76,18 +80,18 @@ func (p *TopDown) Expression(rbp int) interface{} {
 
 // Error implements the Context interface and allows a token nud&led to
 // indicates that there was an issue.
-func (p *TopDown) Error(s string) {
-	p.errors = append(p.errors, s)
+func (p *TopDown) Error(err error) {
+	p.errors = append(p.errors, err)
 }
 
-// NewTopDown instantiate a new TopDown parser based on the tokens provided by
-// the specific lexer. It will actually call the lexer once directly during
-// this constructor.
-func NewTopDown(lex Lexer) *TopDown {
+// TopDownParse run the topdown parser on the tokens provided by the lexer.
+// It will return whatever the tokens have built through nud/led methods and
+// the list of errors encountered during the parsing.
+func TopDownParse(lex Lexer) (interface{}, []error) {
 	p := &TopDown{
 		lex: lex,
 	}
 	// Make the first token available.
 	p.Advance()
-	return p
+	return p.Expression(0), p.errors
 }
