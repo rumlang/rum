@@ -10,7 +10,7 @@ import (
 	"github.com/GeertJohan/go.linenoise"
 	log "github.com/golang/glog"
 	"github.com/palats/glop/parser"
-	"github.com/palats/glop/runner"
+	"github.com/palats/glop/runtime"
 )
 
 var historyFilename = flag.String(
@@ -44,7 +44,7 @@ func main() {
 		defer linenoise.SaveHistory(fname)
 	}
 
-	ctx := runner.NewContext(nil)
+	ctx := runtime.NewContext(nil)
 	ctx.Set("exit", func() {
 		os.Exit(0)
 	})

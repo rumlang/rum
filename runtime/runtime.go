@@ -1,4 +1,4 @@
-package runner
+package runtime
 
 import (
 	"github.com/palats/glop/nodes"
