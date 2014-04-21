@@ -49,3 +49,24 @@ func TestValid(t *testing.T) {
 		}
 	}
 }
+
+func TestPanic(t *testing.T) {
+	panics := []string{
+		"(6)",
+		"(+ 1 (2))",
+	}
+
+	for _, s := range panics {
+		var r interface{}
+		func() {
+			defer func() {
+				r = recover()
+			}()
+			ParseEval("(6)")
+		}()
+
+		if r == nil {
+			t.Fatalf("%q should have generated a panic.", s)
+		}
+	}
+}
