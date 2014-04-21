@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"runtime"
 	"strings"
 
 	"github.com/GeertJohan/go.linenoise"
 	log "github.com/golang/glog"
 	"github.com/palats/glop/parser"
-	"github.com/palats/glop/runtime"
+	glopRuntime "github.com/palats/glop/runtime"
 )
 
 var historyFilename = flag.String(
@@ -44,7 +45,7 @@ func main() {
 		defer linenoise.SaveHistory(fname)
 	}
 
-	ctx := runtime.NewContext(nil)
+	ctx := glopRuntime.NewContext(nil)
 	ctx.Set("exit", func() {
 		os.Exit(0)
 	})
@@ -65,12 +66,30 @@ func main() {
 		tree, errs := parser.Parse(s)
 		if len(errs) > 0 {
 			for _, err := range errs {
-				fmt.Fprintf(os.Stderr, "Err [%d]: %s\n", i, err.Error())
+				fmt.Fprintf(os.Stderr, "Parse error [%d]: %s\n", i, err.Error())
 			}
 			continue
 		}
 
-		result := tree.Eval(ctx)
-		fmt.Printf("Out [%d]: <%T>%#+v\n", i, result, result)
+		var result, recov interface{}
+		var stack []byte
+		func() {
+			defer func() {
+				const size = 16384
+				stack = make([]byte, size)
+				// Unfortunately, that also catch itself, adding noise to the trace.
+				stack = stack[:runtime.Stack(stack, false)]
+				recov = recover()
+			}()
+			result = tree.Eval(ctx)
+		}()
+		if recov != nil {
+			fmt.Printf("Panic [%d]: %v\n", i, recov)
+			for _, line := range strings.Split(string(stack), "\n") {
+				fmt.Printf("  %s\n", line)
+			}
+		} else {
+			fmt.Printf("Out [%d]: <%T>%#+v\n", i, result, result)
+		}
 	}
 }
