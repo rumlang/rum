@@ -61,6 +61,8 @@ func main() {
 			if err != nil {
 				log.Error(err)
 			}
+		} else {
+			continue
 		}
 
 		tree, errs := parser.Parse(s)
