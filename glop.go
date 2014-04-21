@@ -55,14 +55,12 @@ func main() {
 		if err == linenoise.KillSignalError {
 			return
 		}
-
-		if len(strings.TrimSpace(s)) > 0 {
-			err := linenoise.AddHistory(s)
-			if err != nil {
-				log.Error(err)
-			}
-		} else {
+		if len(strings.TrimSpace(s)) == 0 {
 			continue
+		}
+
+		if err := linenoise.AddHistory(s); err != nil {
+			log.Error(err)
 		}
 
 		tree, errs := parser.Parse(s)
