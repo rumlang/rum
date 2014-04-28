@@ -1,24 +1,27 @@
 package parser
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestLexer(t *testing.T) {
 	tests := map[string][]tokenInfo{
 		"foo": []tokenInfo{
-			{text: "foo", start: 0, id: tokIdentifier, value: "foo"},
+			{text: []rune{'f', 'o', 'o'}, startIndex: 0, startCol: 1, id: tokIdentifier, value: "foo"},
 		},
 		"(foo)": []tokenInfo{
-			{text: "(", start: 0, id: tokOpen},
-			{text: "foo", start: 1, id: tokIdentifier, value: "foo"},
-			{text: ")", start: 4, id: tokClose},
+			{text: []rune{'('}, startIndex: 0, startCol: 1, id: tokOpen},
+			{text: []rune{'f', 'o', 'o'}, startIndex: 1, startCol: 2, id: tokIdentifier, value: "foo"},
+			{text: []rune{')'}, startIndex: 4, startCol: 5, id: tokClose},
 		},
 		" (  foo ) ": []tokenInfo{
-			{text: "(", start: 1, id: tokOpen},
-			{text: "foo", start: 4, id: tokIdentifier, value: "foo"},
-			{text: ")", start: 8, id: tokClose},
+			{text: []rune{'('}, startIndex: 1, startCol: 2, id: tokOpen},
+			{text: []rune{'f', 'o', 'o'}, startIndex: 4, startCol: 5, id: tokIdentifier, value: "foo"},
+			{text: []rune{')'}, startIndex: 8, startCol: 9, id: tokClose},
 		},
-		"\nfoo": []tokenInfo{
-			{text: "foo", start: 1, line: 1, id: tokIdentifier, value: "foo"},
+		" \nfoo": []tokenInfo{
+			{text: []rune{'f', 'o', 'o'}, startIndex: 2, startCol: 1, line: 1, id: tokIdentifier, value: "foo"},
 		},
 	}
 
@@ -30,12 +33,34 @@ func TestLexer(t *testing.T) {
 			tokens = append(tokens, t)
 		}
 		if len(tokens) != len(expected) {
-			t.Fatalf("Invalid number of tokens found; expected %+v, found %+v", expected, tokens)
+			t.Fatalf("Expression %q - invalid number of tokens found; expected %#+v, found %#+v", input, expected, tokens)
 		}
 		for i, token := range tokens {
-			if token != expected[i] {
-				t.Errorf("Expression %q - expected %v, got %v", input, expected[i], token)
+			if !reflect.DeepEqual(token, expected[i]) {
+				t.Errorf("Expression %q - expected %#+v, got %#+v", input, expected[i], token)
 			}
+		}
+	}
+}
+
+func TestLexerErrors(t *testing.T) {
+	tests := map[string]int{
+		// Invalid sequence at the beginning - skips the first byte and so gets a
+		// ')'.
+		"\xc3\x28":   1,
+		"a\xc3\x28b": 3,
+	}
+
+	for input, count := range tests {
+		l := newLexer(input)
+		for _ = range l.tokens {
+			count--
+		}
+		if count > 0 {
+			t.Errorf("Input %# x ; Not enough token found - %d more expected", input, count)
+		}
+		if count < 0 {
+			t.Errorf("Input %# x ; Too many token found - %d more than expected", input, -count)
 		}
 	}
 }

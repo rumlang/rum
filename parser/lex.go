@@ -44,16 +44,22 @@ type stateFn func() stateFn
 // tokenInfo give details about a token the lexer extracted - including
 // information about where it comes from.
 type tokenInfo struct {
-	// text is the raw representation, identical to the input.
-	text string
-	// start is the absolute position in the input of this token.
-	start int
+	// raw is the representation of the token, identical to the input. It also
+	// includes invalid bytes (i.e., not matching a valid unicode point).
+	raw string
+	// text is the list of valid runes of this token.
+	text []rune
+	// startIndex is the absolute position in the input of this token, in bytes.
+	startIndex int
+	// startCol is the column this token start on the given line. This ignores
+	// invalid bytes. First character on a line is column = 1.
+	startCol int
 	// line is the line number in the input of the beginning of this token.
 	line int
-	// value is the parsed value of the token - can be string, int, nil, ...
-	value interface{}
-	// id is the lexer token ID, using tok* symbols defined in glop.y.
+	// id is the lexer token ID, using tok* symbols.
 	id int
+	// value is the parsed value of the token - can be a string, int, nil, ...
+	value interface{}
 }
 
 // Value implements nodes.Token interface.
@@ -125,52 +131,84 @@ func (t tokenInfo) Lbp() int {
 type lexer struct {
 	input string
 
+	// next contains the next rune that would be added to current token with
+	// avance().
+	next rune
+	// nextIndex is the byte index in the input of the 'next' rune.
+	nextIndex int
+	// nextCol is the rune index on the current line. Ignores invalid byte
+	// sequences; 1-indexed.
+	nextCol int
+	// pos is the index in input of the next rune to be read (i.e., the index of
+	// the rune starting after the rune currently in 'next')
+	pos int
+	// current line number of the rune in 'next'.
+	line int
+
 	// start indicates the index of the beginning of the token being parsed. This
 	// is relative to input current data.
 	start int
-	// pos is the index in input of the next rune to be read.
-	pos int
-	// current line number of the start position.
-	line    int
+	// token is the token being built - it will be sent to the channel once
+	// accept() is called.
+	token   *tokenInfo
 	tokens  chan tokenInfo
 	errors  []string
 	program nodes.Node
 }
 
 // peek looks one rune ahead in the input but does not advance the current
-// pointer. If the input is invalid, it will return utf8.RuneError.
+// pointer. It should never return RuneError.
 func (l *lexer) peek() rune {
-	if l.pos >= len(l.input) {
-		return EOF
-	}
-	r, _ := utf8.DecodeRuneInString(l.input[l.pos:])
-	// TODO error detection
-	return r
+	return l.next
 }
 
 // advance moves the current position by one rune. Returns the rune encountered
-// or utf8.RuneError if there was an issue.
+// or utf8.RuneError if there was an issue. It should never return RuneError.
 func (l *lexer) advance() rune {
-	r, w := utf8.DecodeRuneInString(l.input[l.pos:])
-	l.pos += w
+	r := l.next
+	l.token.text = append(l.token.text, r)
+	if r == '\n' {
+		l.line++
+		l.nextCol = 1
+	} else {
+		l.nextCol++
+	}
+
+	invalid := ""
+	found := false
+	for !found && l.pos < len(l.input) {
+		// w can be 0 when trying to decode an empty string. However, it should not
+		// happen here because of the 'for' loop test.
+		n, w := utf8.DecodeRuneInString(l.input[l.pos:])
+		l.next = n
+		l.nextIndex = l.pos
+		l.pos += w
+		if n == utf8.RuneError {
+			// TODO: bail out if there are too many invalid bytes.
+			invalid += l.input[l.pos : l.pos+w]
+		} else {
+			found = true
+		}
+	}
+
+	if len(invalid) > 0 {
+		// TODO: add errors with the invalid content.
+	}
+
+	if !found {
+		l.next = EOF
+	}
 	return r
 }
 
 func (l *lexer) accept() tokenInfo {
-	t := tokenInfo{
-		text:  l.input[l.start:l.pos],
-		start: l.start,
-		line:  l.line,
+	t := l.token
+	l.token = &tokenInfo{
+		startIndex: l.nextIndex,
+		startCol:   l.nextCol,
+		line:       l.line,
 	}
-	l.start = l.pos
-
-	for _, r := range t.text {
-		if r == '\n' {
-			l.line++
-		}
-	}
-
-	return t
+	return *t
 }
 
 // stateIdentifier parses arbitrary strings & numbers.
@@ -188,8 +226,6 @@ func (l *lexer) stateIdentifier() stateFn {
 			next = l.stateSpace
 		case r == EOF:
 			next = l.stateEnd
-		case r == utf8.RuneError:
-			//
 		default:
 			l.advance()
 		}
@@ -204,18 +240,17 @@ func (l *lexer) stateIdentifier() stateFn {
 
 	// Check the first rune to determine whether it is just an arbitrary
 	// identifier or a number.
-	r, w := utf8.DecodeRuneInString(token.text)
-
-	if (len(token.text)-w > 0 && (r == '+' || r == '-')) || unicode.IsDigit(r) {
+	if (len(token.text) > 1 && (token.text[0] == '+' || token.text[0] == '-')) || unicode.IsDigit(token.text[0]) {
 		token.id = tokInteger
-		i, err := strconv.ParseInt(token.text, 10, 64)
+		i, err := strconv.ParseInt(string(token.text), 10, 64)
 		if err != nil {
 			panic(err) // TODO
 		}
 		token.value = i
 	} else {
 		token.id = tokIdentifier
-		token.value = token.text
+		// Use []rune for identifiers?
+		token.value = string(token.text)
 	}
 	l.tokens <- token
 	return next
@@ -272,8 +307,13 @@ func (l *lexer) Next() Token {
 func newLexer(input string) *lexer {
 	l := &lexer{
 		input:  input,
+		token:  &tokenInfo{},
 		tokens: make(chan tokenInfo),
 	}
+	// Do an initial advance/accept to get the first character into 'next' and
+	// make sure than the current token is properly initialized.
+	l.advance()
+	l.accept()
 	go l.run()
 	return l
 }
