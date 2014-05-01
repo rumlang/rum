@@ -79,7 +79,7 @@ func (t tokenInfo) Nud(ctx Context) interface{} {
 		}
 		t := ctx.Peek().(tokenInfo)
 		if t.id != tokClose {
-			ctx.Error(fmt.Errorf("invalid token - expected ')', got: %q", t.text))
+			ctx.Error(fmt.Errorf("invalid token - expected ')', got: %q", string(t.text)))
 		} else {
 			ctx.Advance()
 		}
@@ -107,7 +107,7 @@ func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
 		}
 		t := ctx.Peek().(tokenInfo)
 		if t.id != tokClose {
-			ctx.Error(fmt.Errorf("invalid token - expected ')', got: %q", t.text))
+			ctx.Error(fmt.Errorf("invalid token - expected ')', got: %q", string(t.text)))
 		} else {
 			ctx.Advance()
 		}
