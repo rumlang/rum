@@ -66,7 +66,13 @@ func main() {
 		tree, errs := parser.Parse(s)
 		if len(errs) > 0 {
 			for _, err := range errs {
-				fmt.Fprintf(os.Stderr, "Parse error [%d]: %s\n", i, err.Error())
+				prefix := fmt.Sprintf("Parse error [%d]: ", i)
+				spaces := strings.Repeat(" ", len(prefix))
+				fmt.Fprintf(os.Stderr, "%s %s\n", prefix, err.Error())
+
+				if _, ok := err.(parser.Error); ok {
+					fmt.Fprintf(os.Stderr, "%s TODO\n", spaces)
+				}
 			}
 			continue
 		}

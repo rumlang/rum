@@ -5,12 +5,49 @@
 package parser
 
 import (
+	"fmt"
 	"strconv"
 	"unicode"
 	"unicode/utf8"
 
 	"github.com/palats/glop/nodes"
 )
+
+const (
+	// A closing parenthesis was expected, found something else instead.
+	ErrMissingClosingParenthesis = iota
+	// An unknown/invalid token was found at the beginning of an expression.
+	ErrInvalidNudToken
+	// An unknown/invalid token was found in an expression.
+	ErrInvalidLedToken
+)
+
+type ErrorCode int
+
+func (c ErrorCode) String() string {
+	switch c {
+	case ErrMissingClosingParenthesis:
+		return "MissingClosingParenthesis"
+	case ErrInvalidNudToken:
+		return "InvalidNudToken"
+	case ErrInvalidLedToken:
+		return "InvalidNedToken"
+	default:
+		return fmt.Sprintf("Unknown[%d]", c)
+	}
+}
+
+// Error provides more details about a given parser error with references to
+// the source. It satisfies the error interface.
+type Error struct {
+	Msg  string
+	Code ErrorCode
+	Ref  SourceRef
+}
+
+func (e Error) Error() string {
+	return fmt.Sprintf("%s at line %d, col %d: %s", e.Code, e.Ref.Line, e.Ref.Column, e.Msg)
+}
 
 // EOF is an arbitrary rune to indicate end of input from the lexer functions.
 const EOF rune = 0
@@ -26,8 +63,6 @@ type lexer struct {
 	// next contains the next rune that would be added to current token with
 	// avance().
 	next rune
-	// nextIndex is the byte index in the input of the 'next' rune.
-	nextIndex int
 	// nextCol is the rune index on the current line. Ignores invalid byte
 	// sequences; 1-indexed.
 	nextCol int
@@ -73,7 +108,6 @@ func (l *lexer) advance() rune {
 		// happen here because of the 'for' loop test.
 		n, w := utf8.DecodeRuneInString(l.input[l.pos:])
 		l.next = n
-		l.nextIndex = l.pos
 		l.pos += w
 		if n == utf8.RuneError {
 			// TODO: bail out if there are too many invalid bytes.
@@ -96,9 +130,10 @@ func (l *lexer) advance() rune {
 func (l *lexer) accept() tokenInfo {
 	t := l.token
 	l.token = &tokenInfo{
-		startIndex: l.nextIndex,
-		startCol:   l.nextCol,
-		line:       l.line,
+		ref: SourceRef{
+			Line:   l.line,
+			Column: l.nextCol,
+		},
 	}
 	return *t
 }
@@ -191,6 +226,10 @@ func (l *lexer) Next() Token {
 	if !ok {
 		token = tokenInfo{
 			id: tokEOF,
+			ref: SourceRef{
+				Line:   l.line,
+				Column: l.nextCol,
+			},
 		}
 	}
 	return token
@@ -199,6 +238,7 @@ func (l *lexer) Next() Token {
 func newLexer(input string) *lexer {
 	l := &lexer{
 		input:  input,
+		line:   1,
 		token:  &tokenInfo{},
 		tokens: make(chan tokenInfo),
 	}

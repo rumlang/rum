@@ -8,20 +8,20 @@ import (
 func TestLexer(t *testing.T) {
 	tests := map[string][]tokenInfo{
 		"foo": []tokenInfo{
-			{text: []rune{'f', 'o', 'o'}, startIndex: 0, startCol: 1, id: tokIdentifier, value: "foo"},
+			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: SourceRef{Line: 1, Column: 1}},
 		},
 		"(foo)": []tokenInfo{
-			{text: []rune{'('}, startIndex: 0, startCol: 1, id: tokOpen},
-			{text: []rune{'f', 'o', 'o'}, startIndex: 1, startCol: 2, id: tokIdentifier, value: "foo"},
-			{text: []rune{')'}, startIndex: 4, startCol: 5, id: tokClose},
+			{text: []rune{'('}, id: tokOpen, ref: SourceRef{Line: 1, Column: 1}},
+			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: SourceRef{Line: 1, Column: 2}},
+			{text: []rune{')'}, id: tokClose, ref: SourceRef{Line: 1, Column: 5}},
 		},
 		" (  foo ) ": []tokenInfo{
-			{text: []rune{'('}, startIndex: 1, startCol: 2, id: tokOpen},
-			{text: []rune{'f', 'o', 'o'}, startIndex: 4, startCol: 5, id: tokIdentifier, value: "foo"},
-			{text: []rune{')'}, startIndex: 8, startCol: 9, id: tokClose},
+			{text: []rune{'('}, id: tokOpen, ref: SourceRef{Line: 1, Column: 2}},
+			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: SourceRef{Line: 1, Column: 5}},
+			{text: []rune{')'}, id: tokClose, ref: SourceRef{Line: 1, Column: 9}},
 		},
 		" \nfoo": []tokenInfo{
-			{text: []rune{'f', 'o', 'o'}, startIndex: 2, startCol: 1, line: 1, id: tokIdentifier, value: "foo"},
+			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: SourceRef{Line: 2, Column: 1}},
 		},
 	}
 
@@ -99,6 +99,45 @@ func TestParsing(t *testing.T) {
 
 		if count != len(r.Children()) {
 			t.Errorf("Input %q - expected %d children, got %d: %v", input, count, len(r.Children()), r)
+		}
+	}
+}
+
+func TestParsingErrors(t *testing.T) {
+	type foo struct {
+		code ErrorCode
+		ref  SourceRef
+	}
+
+	tests := map[string]foo{
+		"(+": foo{
+			code: ErrMissingClosingParenthesis,
+			ref: SourceRef{
+				Line:   1,
+				Column: 3,
+			},
+		},
+		"(": foo{
+			code: ErrMissingClosingParenthesis,
+			ref: SourceRef{
+				Line:   1,
+				Column: 2,
+			},
+		},
+	}
+
+	for input, expected := range tests {
+		_, errs := Parse(input)
+		if len(errs) != 1 {
+			t.Errorf("Input %q should have 1 error; instead: %v", input, errs)
+		} else {
+			err := errs[0].(Error)
+			if err.Code != expected.code {
+				t.Errorf("Input %q should have returned error code %d; instead: %d", input, expected.code, err.Code)
+			}
+			if !reflect.DeepEqual(err.Ref, expected.ref) {
+				t.Errorf("Input %q - expected %#+v, got %#+v", input, expected.ref, err.Ref)
+			}
 		}
 	}
 }
