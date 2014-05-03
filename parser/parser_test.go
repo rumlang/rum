@@ -8,20 +8,20 @@ import (
 func TestLexer(t *testing.T) {
 	tests := map[string][]tokenInfo{
 		"foo": []tokenInfo{
-			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: SourceRef{Line: 1, Column: 1}},
+			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: SourceRef{Line: 0, Column: 0}},
 		},
 		"(foo)": []tokenInfo{
-			{text: []rune{'('}, id: tokOpen, ref: SourceRef{Line: 1, Column: 1}},
-			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: SourceRef{Line: 1, Column: 2}},
-			{text: []rune{')'}, id: tokClose, ref: SourceRef{Line: 1, Column: 5}},
+			{text: []rune{'('}, id: tokOpen, ref: SourceRef{Line: 0, Column: 0}},
+			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: SourceRef{Line: 0, Column: 1}},
+			{text: []rune{')'}, id: tokClose, ref: SourceRef{Line: 0, Column: 4}},
 		},
 		" (  foo ) ": []tokenInfo{
-			{text: []rune{'('}, id: tokOpen, ref: SourceRef{Line: 1, Column: 2}},
-			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: SourceRef{Line: 1, Column: 5}},
-			{text: []rune{')'}, id: tokClose, ref: SourceRef{Line: 1, Column: 9}},
+			{text: []rune{'('}, id: tokOpen, ref: SourceRef{Line: 0, Column: 1}},
+			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: SourceRef{Line: 0, Column: 4}},
+			{text: []rune{')'}, id: tokClose, ref: SourceRef{Line: 0, Column: 8}},
 		},
 		" \nfoo": []tokenInfo{
-			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: SourceRef{Line: 2, Column: 1}},
+			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: SourceRef{Line: 1, Column: 0}},
 		},
 	}
 
@@ -113,15 +113,15 @@ func TestParsingErrors(t *testing.T) {
 		"(+": foo{
 			code: ErrMissingClosingParenthesis,
 			ref: SourceRef{
-				Line:   1,
-				Column: 3,
+				Line:   0,
+				Column: 2,
 			},
 		},
 		"(": foo{
 			code: ErrMissingClosingParenthesis,
 			ref: SourceRef{
-				Line:   1,
-				Column: 2,
+				Line:   0,
+				Column: 1,
 			},
 		},
 	}

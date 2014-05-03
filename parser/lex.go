@@ -31,7 +31,7 @@ func (c ErrorCode) String() string {
 	case ErrInvalidNudToken:
 		return "InvalidNudToken"
 	case ErrInvalidLedToken:
-		return "InvalidNedToken"
+		return "InvalidLedToken"
 	default:
 		return fmt.Sprintf("Unknown[%d]", c)
 	}
@@ -46,7 +46,7 @@ type Error struct {
 }
 
 func (e Error) Error() string {
-	return fmt.Sprintf("%s at line %d, col %d: %s", e.Code, e.Ref.Line, e.Ref.Column, e.Msg)
+	return fmt.Sprintf("%s at line %d, col %d: %s", e.Code, e.Ref.Line+1, e.Ref.Column+1, e.Msg)
 }
 
 // EOF is an arbitrary rune to indicate end of input from the lexer functions.
@@ -64,12 +64,12 @@ type lexer struct {
 	// avance().
 	next rune
 	// nextCol is the rune index on the current line. Ignores invalid byte
-	// sequences; 1-indexed.
+	// sequences; 0-indexed.
 	nextCol int
 	// pos is the index in input of the next rune to be read (i.e., the index of
 	// the rune starting after the rune currently in 'next')
 	pos int
-	// current line number of the rune in 'next'.
+	// current line number of the rune in 'next'. 0 indexed.
 	line int
 
 	// start indicates the index of the beginning of the token being parsed. This
@@ -96,7 +96,7 @@ func (l *lexer) advance() rune {
 	l.token.text = append(l.token.text, r)
 	if r == '\n' {
 		l.line++
-		l.nextCol = 1
+		l.nextCol = 0
 	} else {
 		l.nextCol++
 	}
@@ -237,10 +237,12 @@ func (l *lexer) Next() Token {
 
 func newLexer(input string) *lexer {
 	l := &lexer{
-		input:  input,
-		line:   1,
-		token:  &tokenInfo{},
-		tokens: make(chan tokenInfo),
+		input: input,
+		token: &tokenInfo{},
+		// As we are starting with a fake advance, we must make sure that indexing
+		// stays correct.
+		nextCol: -1,
+		tokens:  make(chan tokenInfo),
 	}
 	// Do an initial advance/accept to get the first character into 'next' and
 	// make sure than the current token is properly initialized.

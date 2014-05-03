@@ -70,8 +70,19 @@ func main() {
 				spaces := strings.Repeat(" ", len(prefix))
 				fmt.Fprintf(os.Stderr, "%s %s\n", prefix, err.Error())
 
-				if _, ok := err.(parser.Error); ok {
-					fmt.Fprintf(os.Stderr, "%s TODO\n", spaces)
+				if details, ok := err.(parser.Error); ok {
+					lines := strings.Split(s, "\n")
+					if details.Ref.Line >= 0 && details.Ref.Line < len(lines) {
+						line := lines[details.Ref.Line]
+						// TODO: This is probably going to end up corrupting the term if
+						// the input is not clean, so we might want more escaping.
+						fmt.Fprintf(os.Stderr, "%s %s\n", spaces, line)
+						// TODO: This is completely wrong - it mixes up bytes & unicode
+						// (column is a unicode index).
+						if details.Ref.Column >= 0 && details.Ref.Column <= len(line) {
+							fmt.Fprintf(os.Stderr, "%s %s^\n", spaces, strings.Repeat("-", details.Ref.Column))
+						}
+					}
 				}
 			}
 			continue

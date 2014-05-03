@@ -50,9 +50,10 @@ var tokenPriorities = map[tokenID]int{
 
 // SourceRef contains information to trace code back to its implementation.
 type SourceRef struct {
-	// Line indicates the line in the file. Starts at 1.
+	// Line indicates the line in the file. 0-indexed.
 	Line int
 	// Column indicates the rune index (ignoring invalid sequences) in the line.
+	// 0-indexed.
 	Column int
 }
 
@@ -110,7 +111,7 @@ func (t tokenInfo) Nud(ctx Context) interface{} {
 	}
 
 	ctx.Error(Error{
-		Msg:  fmt.Sprintf("unexpected %q (token type %s) at the beginning of an expression", t.text, t.id),
+		Msg:  fmt.Sprintf("unexpected %q (token type %s) at the beginning of an expression", string(t.text), t.id),
 		Code: ErrInvalidNudToken,
 		Ref:  t.ref,
 	})
@@ -146,7 +147,7 @@ func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
 	}
 
 	ctx.Error(Error{
-		Msg:  fmt.Sprintf("unexpected %q (token type %s) in an expression", t.text, t.id),
+		Msg:  fmt.Sprintf("unexpected %q (token type %s) in an expression", string(t.text), t.id),
 		Code: ErrInvalidLedToken,
 		Ref:  t.ref,
 	})
