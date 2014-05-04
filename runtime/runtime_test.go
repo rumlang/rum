@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	"github.com/palats/glop/nodes"
+	"github.com/palats/glop/parser"
 )
 
 func TestQuote(t *testing.T) {
-	r, err := ParseEval("(quote (+ 1 2))")
+	r, err := ParseEval(parser.NewSource("(quote (+ 1 2))"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +41,7 @@ func TestValid(t *testing.T) {
 	}
 
 	for input, expected := range valid {
-		r, err := ParseEval(input)
+		r, err := ParseEval(parser.NewSource(input))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -62,7 +63,7 @@ func TestPanic(t *testing.T) {
 			defer func() {
 				r = recover()
 			}()
-			ParseEval("(6)")
+			ParseEval(parser.NewSource("(6)"))
 		}()
 
 		if r == nil {

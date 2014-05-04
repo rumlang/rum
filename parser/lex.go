@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strconv"
 	"unicode"
-	"unicode/utf8"
 
 	"github.com/palats/glop/nodes"
 )
@@ -49,32 +48,23 @@ func (e Error) Error() string {
 	return fmt.Sprintf("%s at line %d, col %d: %s", e.Code, e.Ref.Line+1, e.Ref.Column+1, e.Msg)
 }
 
-// EOF is an arbitrary rune to indicate end of input from the lexer functions.
-const EOF rune = 0
-
 // stateFn is the prototype for function of the lexer state machine. They don't
 // take any parameter - data is shared through the object.
 type stateFn func() stateFn
 
 // lexer extract the tokens seen in the input.
 type lexer struct {
-	input string
-
+	// scan is obtained from the source object and provides all the valid rune in
+	// the input.
+	scan <-chan rune
 	// next contains the next rune that would be added to current token with
 	// avance().
 	next rune
 	// nextCol is the rune index on the current line. Ignores invalid byte
 	// sequences; 0-indexed.
 	nextCol int
-	// pos is the index in input of the next rune to be read (i.e., the index of
-	// the rune starting after the rune currently in 'next')
-	pos int
 	// current line number of the rune in 'next'. 0 indexed.
 	line int
-
-	// start indicates the index of the beginning of the token being parsed. This
-	// is relative to input current data.
-	start int
 	// token is the token being built - it will be sent to the channel once
 	// accept() is called.
 	token   *tokenInfo
@@ -90,7 +80,7 @@ func (l *lexer) peek() rune {
 }
 
 // advance moves the current position by one rune. Returns the rune encountered
-// or utf8.RuneError if there was an issue. It should never return RuneError.
+// or 0 if there is nothing remaining.
 func (l *lexer) advance() rune {
 	r := l.next
 	l.token.text = append(l.token.text, r)
@@ -101,29 +91,7 @@ func (l *lexer) advance() rune {
 		l.nextCol++
 	}
 
-	invalid := ""
-	found := false
-	for !found && l.pos < len(l.input) {
-		// w can be 0 when trying to decode an empty string. However, it should not
-		// happen here because of the 'for' loop test.
-		n, w := utf8.DecodeRuneInString(l.input[l.pos:])
-		l.next = n
-		l.pos += w
-		if n == utf8.RuneError {
-			// TODO: bail out if there are too many invalid bytes.
-			invalid += l.input[l.pos : l.pos+w]
-		} else {
-			found = true
-		}
-	}
-
-	if len(invalid) > 0 {
-		// TODO: add errors with the invalid content.
-	}
-
-	if !found {
-		l.next = EOF
-	}
+	l.next = <-l.scan
 	return r
 }
 
@@ -151,7 +119,7 @@ func (l *lexer) stateIdentifier() stateFn {
 			next = l.stateClose
 		case unicode.IsSpace(r):
 			next = l.stateSpace
-		case r == EOF:
+		case r == 0: // rune is 0 when scan is finished.
 			next = l.stateEnd
 		default:
 			l.advance()
@@ -235,9 +203,9 @@ func (l *lexer) Next() Token {
 	return token
 }
 
-func newLexer(input string) *lexer {
+func newLexer(src *Source) *lexer {
 	l := &lexer{
-		input: input,
+		scan:  src.Scan(),
 		token: &tokenInfo{},
 		// As we are starting with a fake advance, we must make sure that indexing
 		// stays correct.

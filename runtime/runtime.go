@@ -117,8 +117,8 @@ func Lambda(ctx nodes.Context, args ...nodes.Node) interface{} {
 	return nodes.Internal(impl)
 }
 
-func ParseEval(input string) (interface{}, []error) {
-	node, errs := parser.Parse(input)
+func ParseEval(src *parser.Source) (interface{}, []error) {
+	node, errs := parser.Parse(src)
 	if len(errs) > 0 {
 		return nil, errs
 	}

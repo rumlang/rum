@@ -51,19 +51,20 @@ func main() {
 	})
 
 	for i := 0; ; i++ {
-		s, err := linenoise.Line(fmt.Sprintf("In [%d]: ", i))
+		raw, err := linenoise.Line(fmt.Sprintf("In [%d]: ", i))
 		if err == linenoise.KillSignalError {
 			return
 		}
-		if len(strings.TrimSpace(s)) == 0 {
+		if len(strings.TrimSpace(raw)) == 0 {
 			continue
 		}
 
-		if err := linenoise.AddHistory(s); err != nil {
+		if err := linenoise.AddHistory(raw); err != nil {
 			log.Error(err)
 		}
 
-		tree, errs := parser.Parse(s)
+		src := parser.NewSource(raw)
+		tree, errs := parser.Parse(src)
 		if len(errs) > 0 {
 			for _, err := range errs {
 				prefix := fmt.Sprintf("Parse error [%d]: ", i)
@@ -71,17 +72,16 @@ func main() {
 				fmt.Fprintf(os.Stderr, "%s %s\n", prefix, err.Error())
 
 				if details, ok := err.(parser.Error); ok {
-					lines := strings.Split(s, "\n")
-					if details.Ref.Line >= 0 && details.Ref.Line < len(lines) {
-						line := lines[details.Ref.Line]
+					line, err := src.Line(details.Ref.Line)
+					if err == nil {
 						// TODO: This is probably going to end up corrupting the term if
 						// the input is not clean, so we might want more escaping.
-						fmt.Fprintf(os.Stderr, "%s %s\n", spaces, line)
-						// TODO: This is completely wrong - it mixes up bytes & unicode
-						// (column is a unicode index).
+						fmt.Fprintf(os.Stderr, "%s %s\n", spaces, string(line))
 						if details.Ref.Column >= 0 && details.Ref.Column <= len(line) {
 							fmt.Fprintf(os.Stderr, "%s %s^\n", spaces, strings.Repeat("-", details.Ref.Column))
 						}
+					} else {
+						fmt.Fprintf(os.Stderr, "%s unable to get source info: %s", spaces, err)
 					}
 				}
 			}

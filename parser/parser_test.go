@@ -26,7 +26,7 @@ func TestLexer(t *testing.T) {
 	}
 
 	for input, expected := range tests {
-		l := newLexer(input)
+		l := newLexer(NewSource(input))
 
 		tokens := []tokenInfo{}
 		for t := range l.tokens {
@@ -52,7 +52,7 @@ func TestLexerErrors(t *testing.T) {
 	}
 
 	for input, count := range tests {
-		l := newLexer(input)
+		l := newLexer(NewSource(input))
 		for _ = range l.tokens {
 			count--
 		}
@@ -83,7 +83,7 @@ func TestParsing(t *testing.T) {
 	}
 
 	for input, count := range tests {
-		r, err := Parse(input)
+		r, err := Parse(NewSource(input))
 
 		if count < 0 {
 			if err == nil {
@@ -127,7 +127,7 @@ func TestParsingErrors(t *testing.T) {
 	}
 
 	for input, expected := range tests {
-		_, errs := Parse(input)
+		_, errs := Parse(NewSource(input))
 		if len(errs) != 1 {
 			t.Errorf("Input %q should have 1 error; instead: %v", input, errs)
 		} else {
