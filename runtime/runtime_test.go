@@ -38,6 +38,8 @@ func TestValid(t *testing.T) {
 		"(begin (define d (lambda (n) (+ n n))) (d 3))": int64(6),
 		// Test that inner scopes are not override outer scope.
 		"(begin (define n 7) (define d (lambda (n) (+ n n))) (+ n (d 3)))": int64(13),
+		// Test float
+		".3": float64(.3),
 	}
 
 	for input, expected := range valid {

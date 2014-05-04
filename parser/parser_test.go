@@ -23,6 +23,9 @@ func TestLexer(t *testing.T) {
 		" \nfoo": []tokenInfo{
 			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: SourceRef{Line: 1, Column: 0}},
 		},
+		"1.2": []tokenInfo{
+			{text: []rune{'1', '.', '2'}, id: tokFloat, value: 1.2, ref: SourceRef{Line: 0, Column: 0}},
+		},
 	}
 
 	for input, expected := range tests {
@@ -82,6 +85,7 @@ func TestParsing(t *testing.T) {
 		"(a (b c))":         2,
 		"(a (b c) d (e f))": 4,
 		"(a\nb)":            2,
+		"(1.2 .3)":          2,
 	}
 
 	for input, count := range tests {

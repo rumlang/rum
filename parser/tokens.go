@@ -13,6 +13,7 @@ const (
 	tokClose
 	tokIdentifier
 	tokInteger
+	tokFloat
 	tokSpace
 )
 
@@ -30,6 +31,8 @@ func (t tokenID) String() string {
 		return "Identifier"
 	case tokInteger:
 		return "Integer"
+	case tokFloat:
+		return "Float"
 	case tokSpace:
 		return "Space"
 	default:
@@ -46,6 +49,7 @@ var tokenPriorities = map[tokenID]int{
 	tokClose:      5,
 	tokIdentifier: 20,
 	tokInteger:    20,
+	tokFloat:      20,
 }
 
 // tokenInfo give details about a token the lexer extracted - including
@@ -95,6 +99,8 @@ func (t tokenInfo) Nud(ctx Context) interface{} {
 		return []nodes.Node{nodes.NewIdentifier(t)}
 	case tokInteger:
 		return []nodes.Node{nodes.NewInteger(t)}
+	case tokFloat:
+		return []nodes.Node{nodes.NewFloat(t)}
 	case tokEOF:
 		// Needed for when an open parenthesis (or similar) is just before the end
 		// of the input.
@@ -135,6 +141,8 @@ func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
 		return append(left.([]nodes.Node), nodes.NewIdentifier(t))
 	case tokInteger:
 		return append(left.([]nodes.Node), nodes.NewInteger(t))
+	case tokFloat:
+		return append(left.([]nodes.Node), nodes.NewFloat(t))
 	}
 
 	ctx.Error(Error{

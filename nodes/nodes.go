@@ -56,7 +56,7 @@ func (e Expr) Eval(ctx Context) interface{} {
 	if len(result) == 1 {
 		return result[0].Interface()
 	}
-	panic("Multiple arguments unsupportted")
+	panic("Multiple arguments unsupported")
 }
 
 func (e Expr) String() string {
@@ -109,4 +109,22 @@ func (i Integer) String() string {
 
 func NewInteger(token Token) Integer {
 	return Integer(token.Value().(int64))
+}
+
+type Float float64
+
+func (f Float) Children() []Node {
+	return nil
+}
+
+func (f Float) Eval(ctx Context) interface{} {
+	return float64(f)
+}
+
+func (f Float) String() string {
+	return fmt.Sprintf("<float>%f", float64(f))
+}
+
+func NewFloat(token Token) Float {
+	return Float(token.Value().(float64))
 }
