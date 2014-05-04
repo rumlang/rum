@@ -54,6 +54,8 @@ type stateFn func() stateFn
 
 // lexer extract the tokens seen in the input.
 type lexer struct {
+	// source is the data that the lexer is working on.
+	source *Source
 	// scan is obtained from the source object and provides all the valid rune in
 	// the input.
 	scan <-chan rune
@@ -99,6 +101,7 @@ func (l *lexer) accept() tokenInfo {
 	t := l.token
 	l.token = &tokenInfo{
 		ref: SourceRef{
+			Source: l.source,
 			Line:   l.line,
 			Column: l.nextCol,
 		},
@@ -195,6 +198,7 @@ func (l *lexer) Next() Token {
 		token = tokenInfo{
 			id: tokEOF,
 			ref: SourceRef{
+				Source: l.source,
 				Line:   l.line,
 				Column: l.nextCol,
 			},
@@ -205,8 +209,9 @@ func (l *lexer) Next() Token {
 
 func newLexer(src *Source) *lexer {
 	l := &lexer{
-		scan:  src.Scan(),
-		token: &tokenInfo{},
+		source: src,
+		scan:   src.Scan(),
+		token:  &tokenInfo{},
 		// As we are starting with a fake advance, we must make sure that indexing
 		// stays correct.
 		nextCol: -1,

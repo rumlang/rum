@@ -63,8 +63,7 @@ func main() {
 			log.Error(err)
 		}
 
-		src := parser.NewSource(raw)
-		tree, errs := parser.Parse(src)
+		tree, errs := parser.Parse(parser.NewSource(raw))
 		if len(errs) > 0 {
 			for _, err := range errs {
 				prefix := fmt.Sprintf("Parse error [%d]: ", i)
@@ -72,11 +71,11 @@ func main() {
 				fmt.Fprintf(os.Stderr, "%s %s\n", prefix, err.Error())
 
 				if details, ok := err.(parser.Error); ok {
-					line, err := src.Line(details.Ref.Line)
+					line, err := details.Ref.Source.Line(details.Ref.Line)
 					if err == nil {
 						// TODO: This is probably going to end up corrupting the term if
 						// the input is not clean, so we might want more escaping.
-						fmt.Fprintf(os.Stderr, "%s %s\n", spaces, string(line))
+						fmt.Fprintf(os.Stderr, "%s %s\n", spaces, strings.TrimRight(string(line), "\n"))
 						if details.Ref.Column >= 0 && details.Ref.Column <= len(line) {
 							fmt.Fprintf(os.Stderr, "%s %s^\n", spaces, strings.Repeat("-", details.Ref.Column))
 						}

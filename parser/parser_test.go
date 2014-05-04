@@ -36,6 +36,8 @@ func TestLexer(t *testing.T) {
 			t.Fatalf("Expression %q - invalid number of tokens found; expected %#+v, found %#+v", input, expected, tokens)
 		}
 		for i, token := range tokens {
+			// Remove source info for comparaison.
+			token.ref.Source = nil
 			if !reflect.DeepEqual(token, expected[i]) {
 				t.Errorf("Expression %q - expected %#+v, got %#+v", input, expected[i], token)
 			}
@@ -135,9 +137,21 @@ func TestParsingErrors(t *testing.T) {
 			if err.Code != expected.code {
 				t.Errorf("Input %q should have returned error code %d; instead: %d", input, expected.code, err.Code)
 			}
+			// Remove source info for comparaison.
+			err.Ref.Source = nil
 			if !reflect.DeepEqual(err.Ref, expected.ref) {
 				t.Errorf("Input %q - expected %#+v, got %#+v", input, expected.ref, err.Ref)
 			}
 		}
+	}
+}
+
+func TestSource(t *testing.T) {
+	s := NewSource("a\n ")
+	if l, _ := s.Line(0); string(l) != "a\n" {
+		t.Errorf("expected %q, got %q", "a\n", l)
+	}
+	if l, _ := s.Line(1); string(l) != " " {
+		t.Errorf("expected %q, got %q", " ", l)
 	}
 }

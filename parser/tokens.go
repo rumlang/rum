@@ -48,15 +48,6 @@ var tokenPriorities = map[tokenID]int{
 	tokInteger:    20,
 }
 
-// SourceRef contains information to trace code back to its implementation.
-type SourceRef struct {
-	// Line indicates the line in the file. 0-indexed.
-	Line int
-	// Column indicates the rune index (ignoring invalid sequences) in the line.
-	// 0-indexed.
-	Column int
-}
-
 // tokenInfo give details about a token the lexer extracted - including
 // information about where it comes from.
 type tokenInfo struct {

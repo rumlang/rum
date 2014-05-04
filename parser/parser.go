@@ -69,6 +69,17 @@ func NewSource(input string) *Source {
 	return s
 }
 
+// SourceRef contains information to trace code back to its implementation.
+type SourceRef struct {
+	// Source to which this refers to.
+	Source *Source
+	// Line indicates the line in the file. 0-indexed.
+	Line int
+	// Column indicates the rune index (ignoring invalid sequences) in the line.
+	// 0-indexed.
+	Column int
+}
+
 // Parse will take the provided source, parse it, and ensure that only one root
 // node is returned.
 func Parse(src *Source) (nodes.Node, []error) {
