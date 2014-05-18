@@ -1,19 +1,57 @@
 package runtime
 
 import (
+	"fmt"
+
 	"github.com/palats/glop/nodes"
 	"github.com/palats/glop/parser"
 )
 
+const (
+	ErrUnknownVariable = iota
+)
+
+type ErrorCode int
+
+func (c ErrorCode) String() string {
+	switch c {
+	case ErrUnknownVariable:
+		return "UnknownVariable"
+	default:
+		return fmt.Sprintf("Unknown[%d]", c)
+	}
+}
+
+// Error is sent through panic when something went wrong during the execution.
+type Error struct {
+	Code ErrorCode
+	Msg  string
+}
+
+func (e Error) String() string {
+	return fmt.Sprintf("runtime error: %s[%d] - %s", e.Code, e.Code, e.Msg)
+}
+
+// Context contains details about the current execution frame. It implements
+// nodes.Context interface.
 type Context struct {
 	parent nodes.Context
 	env    map[string]interface{}
 }
 
+// Get returns the content of the specified variable. It will automatically
+// look up parent context if needed. Generate a panic with an Error object if
+// the specified variable does not exists.
 func (c *Context) Get(s string) interface{} {
 	v, ok := c.env[s]
-	if !ok && c.parent != nil {
-		return c.parent.Get(s)
+	if !ok {
+		if c.parent != nil {
+			return c.parent.Get(s)
+		}
+		panic(Error{
+			Code: ErrUnknownVariable,
+			Msg:  fmt.Sprintf("%q does not exists", s),
+		})
 	}
 	return v
 }

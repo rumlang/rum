@@ -65,11 +65,32 @@ func TestPanic(t *testing.T) {
 			defer func() {
 				r = recover()
 			}()
-			ParseEval(parser.NewSource("(6)"))
+			ParseEval(parser.NewSource(s))
 		}()
 
 		if r == nil {
 			t.Fatalf("%q should have generated a panic.", s)
 		}
+	}
+}
+
+func TestUnknownVariable(t *testing.T) {
+	var r interface{}
+	func() {
+		defer func() {
+			r = recover()
+		}()
+		ParseEval(parser.NewSource("(a)"))
+	}()
+	if r == nil {
+		t.Fatalf("Expected a panic, got nothing")
+	}
+
+	e, ok := r.(Error)
+	if !ok {
+		t.Fatalf("Expected a runtime.Error; instead: %v", r)
+	}
+	if e.Code != ErrUnknownVariable {
+		t.Errorf("Expected an UnknownVariable; instead: %v", e)
 	}
 }
