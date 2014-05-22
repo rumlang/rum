@@ -4,7 +4,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/palats/glop/nodes"
 	"github.com/palats/glop/parser"
 )
 
@@ -13,7 +12,7 @@ func TestQuote(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	n := r.(nodes.Node)
+	n := r.(*parser.Node)
 
 	if len(n.Children()) != 3 {
 		t.Errorf("Expected 3 children, got: %v", n.Children())

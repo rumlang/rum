@@ -2,8 +2,9 @@ package runtime
 
 import (
 	"fmt"
+	"reflect"
 
-	"github.com/palats/glop/nodes"
+	log "github.com/golang/glog"
 	"github.com/palats/glop/parser"
 )
 
@@ -32,10 +33,13 @@ func (e Error) String() string {
 	return fmt.Sprintf("runtime error: %s[%d] - %s", e.Code, e.Code, e.Msg)
 }
 
-// Context contains details about the current execution frame. It implements
-// nodes.Context interface.
+// Internal is the type used to recognized internal functions (for which
+// arguments are not evaluated automatically) from regular functions.
+type Internal func(*Context, ...*parser.Node) interface{}
+
+// Context contains details about the current execution frame.
 type Context struct {
-	parent nodes.Context
+	parent *Context
 	env    map[string]interface{}
 }
 
@@ -61,18 +65,57 @@ func (c *Context) Set(s string, v interface{}) interface{} {
 	return v
 }
 
-func NewContext(parent nodes.Context) *Context {
+// Eval takes the provided AST, evaluates it based on the current content of
+// the context and returns the result.
+func (c *Context) Eval(node *parser.Node) interface{} {
+	switch node.Type {
+	case parser.NodeExpression:
+		log.Info("Expr:Eval", node)
+		if len(node.Children()) <= 0 {
+			return nil
+		}
+
+		fn := c.Eval(node.Children()[0])
+
+		if internal, ok := fn.(Internal); ok {
+			return internal(c, node.Children()[1:]...)
+		}
+
+		var args []reflect.Value
+		for _, child := range node.Children()[1:] {
+			args = append(args, reflect.ValueOf(c.Eval(child)))
+		}
+		result := reflect.ValueOf(fn).Call(args)
+		if len(result) == 0 {
+			return nil
+		}
+		if len(result) == 1 {
+			return result[0].Interface()
+		}
+		panic("Multiple arguments unsupported")
+	case parser.NodeIdentifier:
+		return c.Get(node.Value.(string))
+	case parser.NodeInteger:
+		return node.Value.(int64)
+	case parser.NodeFloat:
+		return node.Value.(float64)
+	default:
+		panic("EvalTODO")
+	}
+}
+
+func NewContext(parent *Context) *Context {
 	c := &Context{
 		parent: parent,
 		env:    make(map[string]interface{}),
 	}
 
 	c.env["begin"] = Begin
-	c.env["quote"] = nodes.Internal(Quote)
-	c.env["define"] = nodes.Internal(Define)
-	c.env["set!"] = nodes.Internal(Define)
-	c.env["if"] = nodes.Internal(If)
-	c.env["lambda"] = nodes.Internal(Lambda)
+	c.env["quote"] = Internal(Quote)
+	c.env["define"] = Internal(Define)
+	c.env["set!"] = Internal(Define)
+	c.env["if"] = Internal(If)
+	c.env["lambda"] = Internal(Lambda)
 
 	c.env["+"] = OpAdd
 	c.env["true"] = true
@@ -89,7 +132,7 @@ func OpAdd(values ...int64) int64 {
 	return total
 }
 
-func Quote(ctx nodes.Context, args ...nodes.Node) interface{} {
+func Quote(ctx *Context, args ...*parser.Node) interface{} {
 	if len(args) != 1 {
 		panic("Invalid number of arguments for quote")
 	}
@@ -103,56 +146,62 @@ func Begin(values ...interface{}) interface{} {
 	return values[len(values)-1]
 }
 
-func Define(ctx nodes.Context, args ...nodes.Node) interface{} {
+func Define(ctx *Context, args ...*parser.Node) interface{} {
 	if len(args) != 2 {
 		panic("Invalid arguments")
 	}
-	s := args[0].(nodes.Identifier).Value()
-	return ctx.Set(s, args[1].Eval(ctx))
+	if args[0].Type != parser.NodeIdentifier {
+		panic("TODO")
+	}
+	s := args[0].Value.(string)
+	return ctx.Set(s, ctx.Eval(args[1]))
 }
 
 // If implements the 'if' builtin function. It has to be an Internal interface
 // - otherwise, both true & false expressions would have been already
 // evaluated.
-func If(ctx nodes.Context, args ...nodes.Node) interface{} {
+func If(ctx *Context, args ...*parser.Node) interface{} {
 	if len(args) < 2 || len(args) > 3 {
 		panic("Invalid arguments")
 	}
 
-	cond := args[0].Eval(ctx).(bool)
+	cond := ctx.Eval(args[0]).(bool)
 	if cond {
-		return args[1].Eval(ctx)
+		return ctx.Eval(args[1])
 	}
 
 	if len(args) <= 2 {
 		return nil
 	}
 
-	return args[2].Eval(ctx)
+	return ctx.Eval(args[2])
 }
 
-func Lambda(ctx nodes.Context, args ...nodes.Node) interface{} {
+func Lambda(ctx *Context, args ...*parser.Node) interface{} {
 	if len(args) != 2 {
 		panic("Invalid arguments")
 	}
 
 	names := []string{}
 	for _, n := range args[0].Children() {
-		names = append(names, n.(nodes.Identifier).Value())
+		if n.Type != parser.NodeIdentifier {
+			panic("TODO")
+		}
+		names = append(names, n.Value.(string))
 	}
 	implNode := args[1]
-	impl := func(ctx nodes.Context, args ...nodes.Node) interface{} {
+	impl := func(implCtx *Context, args ...*parser.Node) interface{} {
 		if len(args) != len(names) {
 			panic("TODO")
 		}
-		nested := NewContext(ctx)
+		nested := NewContext(implCtx)
 		for i, name := range names {
-			nested.Set(name, args[i].Eval(ctx))
+			nested.Set(name, implCtx.Eval(args[i]))
 		}
-		return implNode.Eval(nested)
+		return nested.Eval(implNode)
 	}
 
-	return nodes.Internal(impl)
+	return Internal(impl)
 }
 
 func ParseEval(src *parser.Source) (interface{}, []error) {
@@ -160,5 +209,5 @@ func ParseEval(src *parser.Source) (interface{}, []error) {
 	if len(errs) > 0 {
 		return nil, errs
 	}
-	return node.Eval(NewContext(nil)), nil
+	return NewContext(nil).Eval(node), nil
 }

@@ -97,7 +97,7 @@ func main() {
 				stack = stack[:runtime.Stack(stack, false)]
 				recov = recover()
 			}()
-			result = tree.Eval(ctx)
+			result = ctx.Eval(tree)
 		}()
 		if recov != nil {
 			fmt.Printf("Panic [%d]: %v\n", i, recov)

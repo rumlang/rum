@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"unicode/utf8"
-
-	"github.com/palats/glop/nodes"
 )
 
 // Source holds a rune representation of source code.
@@ -82,10 +80,10 @@ type SourceRef struct {
 
 // Parse will take the provided source, parse it, and ensure that only one root
 // node is returned.
-func Parse(src *Source) (nodes.Node, []error) {
+func Parse(src *Source) (*Node, []error) {
 	r, errs := TopDownParse(newLexer(src))
-	result := r.([]nodes.Node)
-	var n nodes.Node
+	result := r.([]*Node)
+	var n *Node
 	if len(result) == 0 {
 		errs = append(errs, errors.New("no node found"))
 	} else if len(result) != 1 {

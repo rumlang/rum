@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"strconv"
 	"unicode"
-
-	"github.com/palats/glop/nodes"
 )
 
 const (
@@ -72,7 +70,7 @@ type lexer struct {
 	token   *tokenInfo
 	tokens  chan tokenInfo
 	errors  []string
-	program nodes.Node
+	program *Node
 }
 
 // peek looks one rune ahead in the input but does not advance the current
