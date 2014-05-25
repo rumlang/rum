@@ -26,6 +26,8 @@ func TestValid(t *testing.T) {
 		"(+int64 1 2)":       int64(3),
 		"(+ 1.0 2.0)":        float64(3),
 		"(+float64 1.0 2.0)": float64(3),
+		"(* 3.0 2.0)":        float64(6),
+		"(* 3 2)":            int64(6),
 		// Test 'begin'
 		"(begin 1 (+ 1 1))": int64(2),
 		"(begin)":           nil,
@@ -62,6 +64,8 @@ func TestPanic(t *testing.T) {
 		"(+ 1.0 2)",
 		"(+int64 1.0 2.0)",
 		"(+float64 1 2)",
+		"(*int64 1.0 2.0)",
+		"(*float64 1 2)",
 	}
 
 	for _, s := range panics {

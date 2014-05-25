@@ -133,6 +133,9 @@ func NewContext(parent *Context) *Context {
 	c.env["+"] = OpAdd
 	c.env["+int64"] = OpAddInt64
 	c.env["+float64"] = OpAddFloat64
+	c.env["*"] = OpMul
+	c.env["*int64"] = OpMulInt64
+	c.env["*float64"] = OpMulFloat64
 	c.env["true"] = true
 	c.env["false"] = false
 
@@ -172,6 +175,43 @@ func OpAddFloat64(values ...interface{}) float64 {
 	var total float64
 	for _, v := range values {
 		total += v.(float64)
+	}
+	return total
+}
+
+// OpMul implements the '*' function. It tries to determine automatically the
+// type based on the first argument.
+func OpMul(values ...interface{}) interface{} {
+	if len(values) < 1 {
+		panic("Function '*' should take at least one argument")
+	}
+
+	switch values[0].(type) {
+	case int64:
+		return OpMulInt64(values...)
+	case float64:
+		return OpMulFloat64(values...)
+	default:
+		panic(fmt.Sprintf("Unable to add values of type %T", values[0]))
+	}
+}
+
+// OpMulInt64 implements '*int64' function. It uses interface{} for parameters
+// to make it usable from the generic OpMul function.
+func OpMulInt64(values ...interface{}) int64 {
+	var total int64 = 1
+	for _, v := range values {
+		total *= v.(int64)
+	}
+	return total
+}
+
+// OpMulFloat64 implements '*float64' function. It uses interface{} for
+// parameters to make it usable from the generic OpMul function.
+func OpMulFloat64(values ...interface{}) float64 {
+	var total float64 = 1.0
+	for _, v := range values {
+		total *= v.(float64)
 	}
 	return total
 }
