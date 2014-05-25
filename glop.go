@@ -31,9 +31,26 @@ func expandFilename(s string) (string, error) {
 	return s, nil
 }
 
+// refContext prints on stderr what is on the line referenced by the provided
+// source reference.
+func refContext(ref parser.SourceRef, prefix string) {
+	line, err := ref.Source.Line(ref.Line)
+	if err == nil {
+		// TODO: This is probably going to end up corrupting the term if
+		// the input is not clean, so we might want more escaping.
+		fmt.Fprintf(os.Stderr, "%s%s\n", prefix, strings.TrimRight(string(line), "\n"))
+		if ref.Column >= 0 && ref.Column <= len(line) {
+			fmt.Fprintf(os.Stderr, "%s%s^\n", prefix, strings.Repeat("-", ref.Column))
+		}
+	} else {
+		fmt.Fprintf(os.Stderr, "%sunable to get source info: %s", prefix, err)
+	}
+}
+
 func main() {
 	flag.Parse()
 
+	// Initialize history file
 	if *historyFilename != "" {
 		fname, err := expandFilename(*historyFilename)
 		if err != nil {
@@ -45,11 +62,13 @@ func main() {
 		defer linenoise.SaveHistory(fname)
 	}
 
+	// Prepare runtime environment
 	ctx := glopRuntime.NewContext(nil)
 	ctx.Set("exit", func() {
 		os.Exit(0)
 	})
 
+	// REPL main loop
 	for i := 0; ; i++ {
 		raw, err := linenoise.Line(fmt.Sprintf("In [%d]: ", i))
 		if err == linenoise.KillSignalError {
@@ -63,30 +82,21 @@ func main() {
 			log.Error(err)
 		}
 
+		// Parsing
 		tree, errs := parser.Parse(parser.NewSource(raw))
 		if len(errs) > 0 {
 			for _, err := range errs {
 				prefix := fmt.Sprintf("Parse error [%d]: ", i)
-				spaces := strings.Repeat(" ", len(prefix))
 				fmt.Fprintf(os.Stderr, "%s %s\n", prefix, err.Error())
 
 				if details, ok := err.(parser.Error); ok {
-					line, err := details.Ref.Source.Line(details.Ref.Line)
-					if err == nil {
-						// TODO: This is probably going to end up corrupting the term if
-						// the input is not clean, so we might want more escaping.
-						fmt.Fprintf(os.Stderr, "%s %s\n", spaces, strings.TrimRight(string(line), "\n"))
-						if details.Ref.Column >= 0 && details.Ref.Column <= len(line) {
-							fmt.Fprintf(os.Stderr, "%s %s^\n", spaces, strings.Repeat("-", details.Ref.Column))
-						}
-					} else {
-						fmt.Fprintf(os.Stderr, "%s unable to get source info: %s", spaces, err)
-					}
+					refContext(details.Ref, strings.Repeat(" ", len(prefix)+1))
 				}
 			}
 			continue
 		}
 
+		// Execution
 		var result, recov interface{}
 		var stack []byte
 		func() {
@@ -100,9 +110,14 @@ func main() {
 			result = ctx.Eval(tree)
 		}()
 		if recov != nil {
-			fmt.Printf("Panic [%d]: %v\n", i, recov)
-			for _, line := range strings.Split(string(stack), "\n") {
-				fmt.Printf("  %s\n", line)
+			prefix := fmt.Sprintf("Panic [%d]: ", i)
+			fmt.Fprintf(os.Stderr, "%s %v\n", prefix, recov)
+			if details, ok := recov.(glopRuntime.Error); ok {
+				refContext(details.Ref, strings.Repeat(" ", len(prefix)+1))
+			} else {
+				for _, line := range strings.Split(string(stack), "\n") {
+					fmt.Printf("  %s\n", line)
+				}
 			}
 		} else {
 			fmt.Printf("Out [%d]: <%T>%#+v\n", i, result, result)

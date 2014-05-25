@@ -27,10 +27,15 @@ func (c ErrorCode) String() string {
 type Error struct {
 	Code ErrorCode
 	Msg  string
+	Ref  parser.SourceRef
 }
 
 func (e Error) String() string {
 	return fmt.Sprintf("runtime error: %s[%d] - %s", e.Code, e.Code, e.Msg)
+}
+
+func (e Error) Error() string {
+	return e.String()
 }
 
 // Internal is the type used to recognized internal functions (for which
@@ -46,18 +51,18 @@ type Context struct {
 // Get returns the content of the specified variable. It will automatically
 // look up parent context if needed. Generate a panic with an Error object if
 // the specified variable does not exists.
-func (c *Context) Get(s string) interface{} {
+func (c *Context) Get(s string) (interface{}, error) {
 	v, ok := c.env[s]
 	if !ok {
 		if c.parent != nil {
 			return c.parent.Get(s)
 		}
-		panic(Error{
+		return nil, Error{
 			Code: ErrUnknownVariable,
-			Msg:  fmt.Sprintf("%q does not exists", s),
-		})
+			Msg:  fmt.Sprintf("%q does not exist", s),
+		}
 	}
-	return v
+	return v, nil
 }
 
 func (c *Context) Set(s string, v interface{}) interface{} {
@@ -94,7 +99,15 @@ func (c *Context) Eval(node *parser.Node) interface{} {
 		}
 		panic("Multiple arguments unsupported")
 	case parser.NodeIdentifier:
-		return c.Get(node.Value.(string))
+		v, err := c.Get(node.Value.(string))
+		if err == nil {
+			return v
+		}
+		if e, ok := err.(Error); ok {
+			e.Ref = node.Ref
+			panic(e)
+		}
+		panic(err)
 	case parser.NodeInteger:
 		return node.Value.(int64)
 	case parser.NodeFloat:

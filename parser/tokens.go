@@ -86,14 +86,14 @@ func (t tokenInfo) Nud(ctx Context) interface{} {
 		} else {
 			ctx.Advance()
 		}
-		return []*Node{NewNode(NodeExpression, sublist)}
+		return []*Node{NewNode(NodeExpression, sublist, t.ref)}
 	// case tokClose: // Shoud never happen
 	case tokIdentifier:
-		return []*Node{NewNode(NodeIdentifier, t.value)}
+		return []*Node{NewNode(NodeIdentifier, t.value, t.ref)}
 	case tokInteger:
-		return []*Node{NewNode(NodeInteger, t.value)}
+		return []*Node{NewNode(NodeInteger, t.value, t.ref)}
 	case tokFloat:
-		return []*Node{NewNode(NodeFloat, t.value)}
+		return []*Node{NewNode(NodeFloat, t.value, t.ref)}
 	case tokEOF:
 		// Needed for when an open parenthesis (or similar) is just before the end
 		// of the input.
@@ -128,14 +128,14 @@ func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
 		} else {
 			ctx.Advance()
 		}
-		return append(left.([]*Node), NewNode(NodeExpression, sublist))
+		return append(left.([]*Node), NewNode(NodeExpression, sublist, t.ref))
 	// case tokClose: // Should never happen.
 	case tokIdentifier:
-		return append(left.([]*Node), NewNode(NodeIdentifier, t.value))
+		return append(left.([]*Node), NewNode(NodeIdentifier, t.value, t.ref))
 	case tokInteger:
-		return append(left.([]*Node), NewNode(NodeInteger, t.value))
+		return append(left.([]*Node), NewNode(NodeInteger, t.value, t.ref))
 	case tokFloat:
-		return append(left.([]*Node), NewNode(NodeFloat, t.value))
+		return append(left.([]*Node), NewNode(NodeFloat, t.value, t.ref))
 	}
 
 	ctx.Error(Error{

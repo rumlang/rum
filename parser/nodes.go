@@ -37,6 +37,7 @@ func (t NodeType) String() string {
 type Node struct {
 	Type  NodeType
 	Value interface{}
+	Ref   SourceRef
 }
 
 // Children returns the list of children this Node has. Most node cannot have
@@ -68,9 +69,10 @@ func (n *Node) String() string {
 	}
 }
 
-func NewNode(t NodeType, v interface{}) *Node {
+func NewNode(t NodeType, v interface{}, ref SourceRef) *Node {
 	return &Node{
 		Type:  t,
 		Value: v,
+		Ref:   ref,
 	}
 }
