@@ -22,7 +22,10 @@ func TestQuote(t *testing.T) {
 func TestValid(t *testing.T) {
 	valid := map[string]interface{}{
 		// Test '+'
-		"(+ 1 2)": int64(3),
+		"(+ 1 2)":            int64(3),
+		"(+int64 1 2)":       int64(3),
+		"(+ 1.0 2.0)":        float64(3),
+		"(+float64 1.0 2.0)": float64(3),
 		// Test 'begin'
 		"(begin 1 (+ 1 1))": int64(2),
 		"(begin)":           nil,
@@ -56,6 +59,9 @@ func TestPanic(t *testing.T) {
 	panics := []string{
 		"(6)",
 		"(+ 1 (2))",
+		"(+ 1.0 2)",
+		"(+int64 1.0 2.0)",
+		"(+float64 1 2)",
 	}
 
 	for _, s := range panics {

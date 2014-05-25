@@ -135,8 +135,9 @@ func (l *lexer) stateIdentifier() stateFn {
 	}
 
 	// Check the first rune to determine whether it is just an arbitrary
-	// identifier or a number.
-	if (len(token.text) > 1 && (token.text[0] == '+' || token.text[0] == '-' || token.text[0] == '.')) || unicode.IsDigit(token.text[0]) {
+	// identifier or a number. Anything starting with [+-.]?[0-9] is considered a
+	// number.
+	if (len(token.text) > 1 && (token.text[0] == '+' || token.text[0] == '-' || token.text[0] == '.') && unicode.IsDigit(token.text[1])) || unicode.IsDigit(token.text[0]) {
 		// Try first to parse it as an integer and if it does not work, try as a
 		// float. This is ugly and number management should probably be rewritten.
 		i, err := strconv.ParseInt(string(token.text), 10, 64)

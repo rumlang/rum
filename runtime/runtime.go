@@ -131,16 +131,47 @@ func NewContext(parent *Context) *Context {
 	c.env["lambda"] = Internal(Lambda)
 
 	c.env["+"] = OpAdd
+	c.env["+int64"] = OpAddInt64
+	c.env["+float64"] = OpAddFloat64
 	c.env["true"] = true
 	c.env["false"] = false
 
 	return c
 }
 
-func OpAdd(values ...int64) int64 {
+// OpAdd implements the '+' function. It tries to determine automatically the
+// type based on the first argument.
+func OpAdd(values ...interface{}) interface{} {
+	if len(values) < 1 {
+		panic("Function '+' should take at least one argument")
+	}
+
+	switch values[0].(type) {
+	case int64:
+		return OpAddInt64(values...)
+	case float64:
+		return OpAddFloat64(values...)
+	default:
+		panic(fmt.Sprintf("Unable to add values of type %T", values[0]))
+	}
+}
+
+// OpAddInt64 implements '+int64' function. It uses interface{} for parameters
+// to make it usable from the generic OpAdd function.
+func OpAddInt64(values ...interface{}) int64 {
 	var total int64
 	for _, v := range values {
-		total += v
+		total += v.(int64)
+	}
+	return total
+}
+
+// OpAddFloat64 implements '+float64' function. It uses interface{} for
+// parameters to make it usable from the generic OpAdd function.
+func OpAddFloat64(values ...interface{}) float64 {
+	var total float64
+	for _, v := range values {
+		total += v.(float64)
 	}
 	return total
 }
