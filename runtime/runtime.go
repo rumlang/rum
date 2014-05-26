@@ -130,14 +130,18 @@ func NewContext(parent *Context) *Context {
 	c.env["if"] = Internal(If)
 	c.env["lambda"] = Internal(Lambda)
 
+	c.env["true"] = true
+	c.env["false"] = false
+
 	c.env["+"] = OpAdd
 	c.env["+int64"] = OpAddInt64
 	c.env["+float64"] = OpAddFloat64
+	c.env["-"] = OpSub
 	c.env["*"] = OpMul
 	c.env["*int64"] = OpMulInt64
 	c.env["*float64"] = OpMulFloat64
-	c.env["true"] = true
-	c.env["false"] = false
+	c.env["=="] = OpEqual
+	c.env["<="] = OpLessEqual
 
 	return c
 }
