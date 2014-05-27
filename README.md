@@ -18,15 +18,43 @@ go get github.com/GeertJohan/go.linenoise
 go get github.com/golang/glog
 ```
 
-* To re-generate `y.go` from the grammar, assuming that you are in the `glop/` directory:
-```bash
-go tool yacc -o parser/y.go parser/glop.y
+* Then, you can run the REPL:
+```
+go run $GOPATH/src/github.com/palats/glop/glop.go
 ```
 
-* To run tests, for example for the `runner` module:
+* To run all tests, from the glop/ directory:
 ```bash
-go test github.com/palats/glop/runner
+go test ./...
 ```
+
+Features
+--------
+
+Available list of functions is in `runtime/runtime.go`, in the `NewContext` function. Currently:
+
+* Basic lisp: `begin`, `quote`, `define`, `set!`, `if`, `lambda`
+
+* Constants: `true`, `false`
+
+* Integers and float numbers are supported, but scientific notation is not.
+
+* Operators: `==`, `!=`, `<`, `<=`, `>`, `>=`, `+`, `-`, `*` ; they look at the
+  first argument to see whether they are operating on integer or floats.
+
+
+Example:
+```
+In [0]: (define area (lambda (r) (* 3.141592653 (* r r))))
+Out [0]: <runtime.Internal>(runtime.Internal)(0x457d00)
+In [1]: (area 3.0)
+Out [1]: <float64>28.274333877
+In [2]: (define fact (lambda (n) (if (<= n 1) 1 (* n (fact (- n 1))))))
+Out [2]: <runtime.Internal>(runtime.Internal)(0x457d00)
+In [3]: (fact 10)
+Out [3]: <int64>3628800
+```
+
 
 Project license
 ---------------

@@ -141,7 +141,12 @@ func NewContext(parent *Context) *Context {
 	c.env["*int64"] = OpMulInt64
 	c.env["*float64"] = OpMulFloat64
 	c.env["=="] = OpEqual
+	c.env["eq?"] = OpEqual
+	c.env["!="] = OpNotEqual
+	c.env["<"] = OpLess
 	c.env["<="] = OpLessEqual
+	c.env[">"] = OpGreater
+	c.env[">="] = OpGreaterEqual
 
 	return c
 }

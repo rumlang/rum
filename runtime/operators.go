@@ -142,32 +142,50 @@ func OpEqual(values ...interface{}) interface{} {
 	}
 }
 
-// OpLessEqual implements the <= comparaison operator. It can work on more than
-// 2 arguments - it will return true only if all values are ordered from
-// smaller to biggest.
-func OpLessEqual(values ...interface{}) interface{} {
-	if len(values) < 2 {
-		panic("Function '<=' should take at least two arguments")
+func OpNotEqual(values ...interface{}) interface{} {
+	if len(values) != 2 {
+		panic("Function '!=' should take exactly two arguments")
+	}
+	return !OpEqual(values...).(bool)
+}
+
+func OpLess(values ...interface{}) interface{} {
+	if len(values) != 2 {
+		panic("Comparaison function should take two arguments")
 	}
 
 	switch values[0].(type) {
 	case int64:
 		ref := values[0].(int64)
 		for _, v := range values[1:] {
-			if ref > v.(int64) {
+			if ref >= v.(int64) {
 				return false
 			}
+			ref = v.(int64)
 		}
 		return true
 	case float64:
 		ref := values[0].(float64)
 		for _, v := range values[1:] {
-			if ref > v.(float64) {
+			if ref >= v.(float64) {
 				return false
 			}
+			ref = v.(float64)
 		}
 		return true
 	default:
 		panic(fmt.Sprintf("Unable to compare values of type %T", values[0]))
 	}
+}
+
+func OpLessEqual(values ...interface{}) interface{} {
+	return OpLess(values...).(bool) || OpEqual(values...).(bool)
+}
+
+func OpGreater(values ...interface{}) interface{} {
+	return !OpLessEqual(values...).(bool)
+}
+
+func OpGreaterEqual(values ...interface{}) interface{} {
+	return !OpLess(values...).(bool)
 }
