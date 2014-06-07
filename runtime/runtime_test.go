@@ -12,10 +12,10 @@ func TestQuote(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	n := r.(*parser.Node)
+	n := r.([]parser.Value)
 
-	if len(n.Children()) != 3 {
-		t.Errorf("Expected 3 children, got: %v", n.Children())
+	if len(n) != 3 {
+		t.Errorf("Expected 3 children, got: %v", n)
 	}
 }
 

@@ -40,18 +40,18 @@ func (e Error) Error() string {
 
 // Internal is the type used to recognized internal functions (for which
 // arguments are not evaluated automatically) from regular functions.
-type Internal func(*Context, ...*parser.Node) interface{}
+type Internal func(*Context, ...parser.Value) parser.Value
 
 // Context contains details about the current execution frame.
 type Context struct {
 	parent *Context
-	env    map[string]interface{}
+	env    map[string]parser.Value
 }
 
 // Get returns the content of the specified variable. It will automatically
 // look up parent context if needed. Generate a panic with an Error object if
 // the specified variable does not exists.
-func (c *Context) Get(s string) (interface{}, error) {
+func (c *Context) Get(s string) (parser.Value, error) {
 	v, ok := c.env[s]
 	if !ok {
 		if c.parent != nil {
@@ -65,14 +65,16 @@ func (c *Context) Get(s string) (interface{}, error) {
 	return v, nil
 }
 
-func (c *Context) Set(s string, v interface{}) interface{} {
+func (c *Context) Set(s string, v parser.Value) parser.Value {
 	c.env[s] = v
 	return v
 }
 
 // Eval takes the provided AST, evaluates it based on the current content of
 // the context and returns the result.
-func (c *Context) Eval(node *parser.Node) interface{} {
+// XXX should return a struct with metadata + value (a bit like Node in practice) for all type; i.e., always annotate what we're manipulating
+func (c *Context) Eval(v parser.Value) parser.Value {
+	node := v.(*parser.Node)
 	switch node.Type {
 	case parser.NodeExpression:
 		log.Info("Expr:Eval", node)
@@ -80,7 +82,7 @@ func (c *Context) Eval(node *parser.Node) interface{} {
 			return nil
 		}
 
-		fn := c.Eval(node.Children()[0])
+		fn := c.Eval(node.Children()[0].(*parser.Node)).Value()
 
 		if internal, ok := fn.(Internal); ok {
 			return internal(c, node.Children()[1:]...)
@@ -88,18 +90,18 @@ func (c *Context) Eval(node *parser.Node) interface{} {
 
 		var args []reflect.Value
 		for _, child := range node.Children()[1:] {
-			args = append(args, reflect.ValueOf(c.Eval(child)))
+			args = append(args, reflect.ValueOf(c.Eval(child).Value()))
 		}
 		result := reflect.ValueOf(fn).Call(args)
 		if len(result) == 0 {
-			return nil
+			return parser.ValueAny(nil)
 		}
 		if len(result) == 1 {
-			return result[0].Interface()
+			return parser.ValueAny(result[0].Interface())
 		}
 		panic("Multiple arguments unsupported")
 	case parser.NodeIdentifier:
-		v, err := c.Get(node.Value.(string))
+		v, err := c.Get(node.Value().(string))
 		if err == nil {
 			return v
 		}
@@ -109,9 +111,9 @@ func (c *Context) Eval(node *parser.Node) interface{} {
 		}
 		panic(err)
 	case parser.NodeInteger:
-		return node.Value.(int64)
+		return node
 	case parser.NodeFloat:
-		return node.Value.(float64)
+		return node
 	default:
 		panic("EvalTODO")
 	}
@@ -120,38 +122,46 @@ func (c *Context) Eval(node *parser.Node) interface{} {
 func NewContext(parent *Context) *Context {
 	c := &Context{
 		parent: parent,
-		env:    make(map[string]interface{}),
+		env:    make(map[string]parser.Value),
 	}
 
-	c.env["begin"] = Begin
-	c.env["quote"] = Internal(Quote)
-	c.env["define"] = Internal(Define)
-	c.env["set!"] = Internal(Define)
-	c.env["if"] = Internal(If)
-	c.env["lambda"] = Internal(Lambda)
+	defaults := map[string]interface{}{
+		"begin":  Begin,
+		"quote":  Internal(Quote),
+		"define": Internal(Define),
+		"set!":   Internal(Define),
+		"if":     Internal(If),
+		"lambda": Internal(Lambda),
 
-	c.env["true"] = true
-	c.env["false"] = false
+		"type": Type,
 
-	c.env["+"] = OpAdd
-	c.env["+int64"] = OpAddInt64
-	c.env["+float64"] = OpAddFloat64
-	c.env["-"] = OpSub
-	c.env["*"] = OpMul
-	c.env["*int64"] = OpMulInt64
-	c.env["*float64"] = OpMulFloat64
-	c.env["=="] = OpEqual
-	c.env["eq?"] = OpEqual
-	c.env["!="] = OpNotEqual
-	c.env["<"] = OpLess
-	c.env["<="] = OpLessEqual
-	c.env[">"] = OpGreater
-	c.env[">="] = OpGreaterEqual
+		"true":  true,
+		"false": false,
+
+		"+":        OpAdd,
+		"+int64":   OpAddInt64,
+		"+float64": OpAddFloat64,
+		"-":        OpSub,
+		"*":        OpMul,
+		"*int64":   OpMulInt64,
+		"*float64": OpMulFloat64,
+		"==":       OpEqual,
+		"eq?":      OpEqual,
+		"!=":       OpNotEqual,
+		"<":        OpLess,
+		"<=":       OpLessEqual,
+		">":        OpGreater,
+		">=":       OpGreaterEqual,
+	}
+
+	for name, value := range defaults {
+		c.env[name] = parser.ValueAny(value)
+	}
 
 	return c
 }
 
-func Quote(ctx *Context, args ...*parser.Node) interface{} {
+func Quote(ctx *Context, args ...parser.Value) parser.Value {
 	if len(args) != 1 {
 		panic("Invalid number of arguments for quote")
 	}
@@ -165,51 +175,51 @@ func Begin(values ...interface{}) interface{} {
 	return values[len(values)-1]
 }
 
-func Define(ctx *Context, args ...*parser.Node) interface{} {
+func Define(ctx *Context, args ...parser.Value) parser.Value {
 	if len(args) != 2 {
 		panic("Invalid arguments")
 	}
-	if args[0].Type != parser.NodeIdentifier {
+	if args[0].(*parser.Node).Type != parser.NodeIdentifier {
 		panic("TODO")
 	}
-	s := args[0].Value.(string)
+	s := args[0].Value().(string)
 	return ctx.Set(s, ctx.Eval(args[1]))
 }
 
 // If implements the 'if' builtin function. It has to be an Internal interface
 // - otherwise, both true & false expressions would have been already
 // evaluated.
-func If(ctx *Context, args ...*parser.Node) interface{} {
+func If(ctx *Context, args ...parser.Value) parser.Value {
 	if len(args) < 2 || len(args) > 3 {
 		panic("Invalid arguments")
 	}
 
-	cond := ctx.Eval(args[0]).(bool)
+	cond := ctx.Eval(args[0]).Value().(bool)
 	if cond {
 		return ctx.Eval(args[1])
 	}
 
 	if len(args) <= 2 {
-		return nil
+		return parser.ValueAny(nil)
 	}
 
 	return ctx.Eval(args[2])
 }
 
-func Lambda(ctx *Context, args ...*parser.Node) interface{} {
+func Lambda(ctx *Context, args ...parser.Value) parser.Value {
 	if len(args) != 2 {
 		panic("Invalid arguments")
 	}
 
 	names := []string{}
-	for _, n := range args[0].Children() {
-		if n.Type != parser.NodeIdentifier {
+	for _, n := range args[0].(*parser.Node).Children() {
+		if n.(*parser.Node).Type != parser.NodeIdentifier {
 			panic("TODO")
 		}
-		names = append(names, n.Value.(string))
+		names = append(names, n.Value().(string))
 	}
 	implNode := args[1]
-	impl := func(implCtx *Context, args ...*parser.Node) interface{} {
+	impl := func(implCtx *Context, args ...parser.Value) parser.Value {
 		if len(args) != len(names) {
 			panic("TODO")
 		}
@@ -220,7 +230,11 @@ func Lambda(ctx *Context, args ...*parser.Node) interface{} {
 		return nested.Eval(implNode)
 	}
 
-	return Internal(impl)
+	return parser.ValueAny(Internal(impl))
+}
+
+func Type(v interface{}) string {
+	return fmt.Sprintf("%T", v)
 }
 
 func ParseEval(src *parser.Source) (interface{}, []error) {
@@ -228,5 +242,5 @@ func ParseEval(src *parser.Source) (interface{}, []error) {
 	if len(errs) > 0 {
 		return nil, errs
 	}
-	return NewContext(nil).Eval(node), nil
+	return NewContext(nil).Eval(node).Value(), nil
 }

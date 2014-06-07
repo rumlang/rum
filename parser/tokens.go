@@ -67,14 +67,14 @@ type tokenInfo struct {
 }
 
 // Nud implements the Token interface for the top down parser.
-// It always returns a []*Node. In case of errors, it will add an error through
+// It always returns a []Value. In case of errors, it will add an error through
 // the context and return an empty list.
 func (t tokenInfo) Nud(ctx Context) interface{} {
 	switch t.id {
 	case tokOpen:
-		var sublist []*Node
+		var sublist []Value
 		if ctx.Peek().(tokenInfo).id != tokClose {
-			sublist = ctx.Expression(tokenPriorities[tokClose]).([]*Node)
+			sublist = ctx.Expression(tokenPriorities[tokClose]).([]Value)
 		}
 		t := ctx.Peek().(tokenInfo)
 		if t.id != tokClose {
@@ -86,18 +86,18 @@ func (t tokenInfo) Nud(ctx Context) interface{} {
 		} else {
 			ctx.Advance()
 		}
-		return []*Node{NewNode(NodeExpression, sublist, t.ref)}
+		return []Value{NewNode(NodeExpression, sublist, t.ref)}
 	// case tokClose: // Shoud never happen
 	case tokIdentifier:
-		return []*Node{NewNode(NodeIdentifier, t.value, t.ref)}
+		return []Value{NewNode(NodeIdentifier, t.value, t.ref)}
 	case tokInteger:
-		return []*Node{NewNode(NodeInteger, t.value, t.ref)}
+		return []Value{NewNode(NodeInteger, t.value, t.ref)}
 	case tokFloat:
-		return []*Node{NewNode(NodeFloat, t.value, t.ref)}
+		return []Value{NewNode(NodeFloat, t.value, t.ref)}
 	case tokEOF:
 		// Needed for when an open parenthesis (or similar) is just before the end
 		// of the input.
-		return []*Node{}
+		return []Value{}
 	}
 
 	ctx.Error(Error{
@@ -105,18 +105,18 @@ func (t tokenInfo) Nud(ctx Context) interface{} {
 		Code: ErrInvalidNudToken,
 		Ref:  t.ref,
 	})
-	return []*Node{}
+	return []Value{}
 }
 
 // Led implements the Token interface for the top down parser.
-// It always returns a []*Node. In case of errors, it will add an error through
+// It always returns a []Value. In case of errors, it will add an error through
 // the context and ignore the token.
 func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
 	switch t.id {
 	case tokOpen:
-		var sublist []*Node
+		var sublist []Value
 		if ctx.Peek().(tokenInfo).id != tokClose {
-			sublist = ctx.Expression(tokenPriorities[tokClose]).([]*Node)
+			sublist = ctx.Expression(tokenPriorities[tokClose]).([]Value)
 		}
 		t := ctx.Peek().(tokenInfo)
 		if t.id != tokClose {
@@ -128,14 +128,14 @@ func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
 		} else {
 			ctx.Advance()
 		}
-		return append(left.([]*Node), NewNode(NodeExpression, sublist, t.ref))
+		return append(left.([]Value), NewNode(NodeExpression, sublist, t.ref))
 	// case tokClose: // Should never happen.
 	case tokIdentifier:
-		return append(left.([]*Node), NewNode(NodeIdentifier, t.value, t.ref))
+		return append(left.([]Value), NewNode(NodeIdentifier, t.value, t.ref))
 	case tokInteger:
-		return append(left.([]*Node), NewNode(NodeInteger, t.value, t.ref))
+		return append(left.([]Value), NewNode(NodeInteger, t.value, t.ref))
 	case tokFloat:
-		return append(left.([]*Node), NewNode(NodeFloat, t.value, t.ref))
+		return append(left.([]Value), NewNode(NodeFloat, t.value, t.ref))
 	}
 
 	ctx.Error(Error{

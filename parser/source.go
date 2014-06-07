@@ -82,14 +82,14 @@ type SourceRef struct {
 // node is returned.
 func Parse(src *Source) (*Node, []error) {
 	r, errs := TopDownParse(newLexer(src))
-	result := r.([]*Node)
+	result := r.([]Value)
 	var n *Node
 	if len(result) == 0 {
 		errs = append(errs, errors.New("no node found"))
 	} else if len(result) != 1 {
 		errs = append(errs, fmt.Errorf("obtained more than one node: %v", result))
 	} else {
-		n = result[0]
+		n = result[0].(*Node)
 	}
 
 	return n, errs
