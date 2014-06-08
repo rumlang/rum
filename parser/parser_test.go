@@ -8,23 +8,23 @@ import (
 func TestLexer(t *testing.T) {
 	tests := map[string][]tokenInfo{
 		"foo": []tokenInfo{
-			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: SourceRef{Line: 0, Column: 0}},
+			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: &SourceRef{Line: 0, Column: 0}},
 		},
 		"(foo)": []tokenInfo{
-			{text: []rune{'('}, id: tokOpen, ref: SourceRef{Line: 0, Column: 0}},
-			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: SourceRef{Line: 0, Column: 1}},
-			{text: []rune{')'}, id: tokClose, ref: SourceRef{Line: 0, Column: 4}},
+			{text: []rune{'('}, id: tokOpen, ref: &SourceRef{Line: 0, Column: 0}},
+			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: &SourceRef{Line: 0, Column: 1}},
+			{text: []rune{')'}, id: tokClose, ref: &SourceRef{Line: 0, Column: 4}},
 		},
 		" (  foo ) ": []tokenInfo{
-			{text: []rune{'('}, id: tokOpen, ref: SourceRef{Line: 0, Column: 1}},
-			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: SourceRef{Line: 0, Column: 4}},
-			{text: []rune{')'}, id: tokClose, ref: SourceRef{Line: 0, Column: 8}},
+			{text: []rune{'('}, id: tokOpen, ref: &SourceRef{Line: 0, Column: 1}},
+			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: &SourceRef{Line: 0, Column: 4}},
+			{text: []rune{')'}, id: tokClose, ref: &SourceRef{Line: 0, Column: 8}},
 		},
 		" \nfoo": []tokenInfo{
-			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: SourceRef{Line: 1, Column: 0}},
+			{text: []rune{'f', 'o', 'o'}, id: tokIdentifier, value: "foo", ref: &SourceRef{Line: 1, Column: 0}},
 		},
 		"1.2": []tokenInfo{
-			{text: []rune{'1', '.', '2'}, id: tokFloat, value: 1.2, ref: SourceRef{Line: 0, Column: 0}},
+			{text: []rune{'1', '.', '2'}, id: tokFloat, value: 1.2, ref: &SourceRef{Line: 0, Column: 0}},
 		},
 	}
 
@@ -70,16 +70,16 @@ func TestLexerErrors(t *testing.T) {
 	}
 }
 
-func TestParsing(t *testing.T) {
+func TestParsingExpression(t *testing.T) {
 	tests := map[string]int{
-		"":                  -1,
-		")":                 -1,
-		"(":                 -1,
-		"a)b":               -1,
-		")b":                -1,
-		"a(b":               -1,
-		"()":                0,
-		"foo":               0,
+		"":    -1,
+		")":   -1,
+		"(":   -1,
+		"a)b": -1,
+		")b":  -1,
+		"a(b": -1,
+		"()":  0,
+		// "foo":               0,
 		"(foo)":             1,
 		"(a b)":             2,
 		"(a (b c))":         2,
@@ -103,9 +103,20 @@ func TestParsing(t *testing.T) {
 			continue
 		}
 
-		if count != len(r.Children()) {
-			t.Errorf("Input %q - expected %d children, got %d: %v", input, count, len(r.Children()), r)
+		if count != len(r.Value().([]Value)) {
+			t.Errorf("Input %q - expected %d children, got %d: %v", input, count, len(r.Value().([]Value)), r)
 		}
+	}
+}
+
+func TestParsingAtoms(t *testing.T) {
+	r, err := Parse(NewSource("foo"))
+	if err != nil {
+		t.Fatalf("Expected parsable code, got: %v", err)
+	}
+
+	if string(r.Value().(Identifier)) != "foo" {
+		t.Errorf("Expected 'foo', got: %v", r.Value())
 	}
 }
 
@@ -143,7 +154,7 @@ func TestParsingErrors(t *testing.T) {
 			}
 			// Remove source info for comparaison.
 			err.Ref.Source = nil
-			if !reflect.DeepEqual(err.Ref, expected.ref) {
+			if !reflect.DeepEqual(*err.Ref, expected.ref) {
 				t.Errorf("Input %q - expected %#+v, got %#+v", input, expected.ref, err.Ref)
 			}
 		}

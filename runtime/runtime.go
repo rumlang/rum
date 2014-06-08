@@ -27,7 +27,7 @@ func (c ErrorCode) String() string {
 type Error struct {
 	Code ErrorCode
 	Msg  string
-	Ref  parser.SourceRef
+	Ref  *parser.SourceRef
 }
 
 func (e Error) String() string {
@@ -45,87 +45,83 @@ type Internal func(*Context, ...parser.Value) parser.Value
 // Context contains details about the current execution frame.
 type Context struct {
 	parent *Context
-	env    map[string]parser.Value
+	env    map[parser.Identifier]parser.Value
 }
 
 // Get returns the content of the specified variable. It will automatically
 // look up parent context if needed. Generate a panic with an Error object if
 // the specified variable does not exists.
-func (c *Context) Get(s string) (parser.Value, error) {
-	v, ok := c.env[s]
+func (c *Context) Get(id parser.Identifier) (parser.Value, error) {
+	v, ok := c.env[id]
 	if !ok {
 		if c.parent != nil {
-			return c.parent.Get(s)
+			return c.parent.Get(id)
 		}
 		return nil, Error{
 			Code: ErrUnknownVariable,
-			Msg:  fmt.Sprintf("%q does not exist", s),
+			Msg:  fmt.Sprintf("%q does not exist", string(id)),
 		}
 	}
 	return v, nil
 }
 
-func (c *Context) Set(s string, v parser.Value) parser.Value {
-	c.env[s] = v
+func (c *Context) Set(id parser.Identifier, v parser.Value) parser.Value {
+	c.env[id] = v
 	return v
 }
 
-// Eval takes the provided AST, evaluates it based on the current content of
+// Eval takes the provided value, evaluates it based on the current content of
 // the context and returns the result.
-// XXX should return a struct with metadata + value (a bit like Node in practice) for all type; i.e., always annotate what we're manipulating
-func (c *Context) Eval(v parser.Value) parser.Value {
-	node := v.(*parser.Node)
-	switch node.Type {
-	case parser.NodeExpression:
-		log.Info("Expr:Eval", node)
-		if len(node.Children()) <= 0 {
+func (c *Context) Eval(input parser.Value) parser.Value {
+	switch data := input.Value().(type) {
+	case []parser.Value:
+		log.Info("Expr:Eval", input)
+
+		if len(data) <= 0 {
 			return nil
 		}
 
-		fn := c.Eval(node.Children()[0].(*parser.Node)).Value()
+		fn := c.Eval(data[0]).Value()
 
 		if internal, ok := fn.(Internal); ok {
-			return internal(c, node.Children()[1:]...)
+			return internal(c, data[1:]...)
 		}
 
 		var args []reflect.Value
-		for _, child := range node.Children()[1:] {
+		for _, child := range data[1:] {
 			args = append(args, reflect.ValueOf(c.Eval(child).Value()))
 		}
 		result := reflect.ValueOf(fn).Call(args)
 		if len(result) == 0 {
-			return parser.ValueAny(nil)
+			return parser.NewAny(nil, nil)
 		}
 		if len(result) == 1 {
-			return parser.ValueAny(result[0].Interface())
+			return parser.NewAny(result[0].Interface(), nil)
 		}
 		panic("Multiple arguments unsupported")
-	case parser.NodeIdentifier:
-		v, err := c.Get(node.Value().(string))
+	case parser.Identifier:
+		v, err := c.Get(data)
 		if err == nil {
 			return v
 		}
 		if e, ok := err.(Error); ok {
-			e.Ref = node.Ref
+			e.Ref = input.Ref()
 			panic(e)
 		}
 		panic(err)
-	case parser.NodeInteger:
-		return node
-	case parser.NodeFloat:
-		return node
 	default:
-		panic("EvalTODO")
+		// If it is neither an identifier or a list, just return the value.
+		return input
 	}
 }
 
 func NewContext(parent *Context) *Context {
 	c := &Context{
 		parent: parent,
-		env:    make(map[string]parser.Value),
+		env:    make(map[parser.Identifier]parser.Value),
 	}
 
-	defaults := map[string]interface{}{
+	defaults := map[parser.Identifier]interface{}{
 		"begin":  Begin,
 		"quote":  Internal(Quote),
 		"define": Internal(Define),
@@ -155,7 +151,7 @@ func NewContext(parent *Context) *Context {
 	}
 
 	for name, value := range defaults {
-		c.env[name] = parser.ValueAny(value)
+		c.env[name] = parser.NewAny(value, nil)
 	}
 
 	return c
@@ -179,11 +175,12 @@ func Define(ctx *Context, args ...parser.Value) parser.Value {
 	if len(args) != 2 {
 		panic("Invalid arguments")
 	}
-	if args[0].(*parser.Node).Type != parser.NodeIdentifier {
+
+	id, ok := args[0].Value().(parser.Identifier)
+	if !ok {
 		panic("TODO")
 	}
-	s := args[0].Value().(string)
-	return ctx.Set(s, ctx.Eval(args[1]))
+	return ctx.Set(id, ctx.Eval(args[1]))
 }
 
 // If implements the 'if' builtin function. It has to be an Internal interface
@@ -200,7 +197,7 @@ func If(ctx *Context, args ...parser.Value) parser.Value {
 	}
 
 	if len(args) <= 2 {
-		return parser.ValueAny(nil)
+		return parser.NewAny(nil, nil)
 	}
 
 	return ctx.Eval(args[2])
@@ -211,14 +208,19 @@ func Lambda(ctx *Context, args ...parser.Value) parser.Value {
 		panic("Invalid arguments")
 	}
 
-	names := []string{}
-	for _, n := range args[0].(*parser.Node).Children() {
-		if n.(*parser.Node).Type != parser.NodeIdentifier {
+	params, ok := args[0].Value().([]parser.Value)
+	if !ok {
+		panic("TODO")
+	}
+	names := []parser.Identifier{}
+	for _, v := range params {
+		id, ok := v.Value().(parser.Identifier)
+		if !ok {
 			panic("TODO")
 		}
-		names = append(names, n.Value().(string))
+		names = append(names, id)
 	}
-	implNode := args[1]
+	implValue := args[1]
 	impl := func(implCtx *Context, args ...parser.Value) parser.Value {
 		if len(args) != len(names) {
 			panic("TODO")
@@ -227,10 +229,10 @@ func Lambda(ctx *Context, args ...parser.Value) parser.Value {
 		for i, name := range names {
 			nested.Set(name, implCtx.Eval(args[i]))
 		}
-		return nested.Eval(implNode)
+		return nested.Eval(implValue)
 	}
 
-	return parser.ValueAny(Internal(impl))
+	return parser.NewAny(Internal(impl), nil)
 }
 
 func Type(v interface{}) string {
@@ -238,9 +240,9 @@ func Type(v interface{}) string {
 }
 
 func ParseEval(src *parser.Source) (interface{}, []error) {
-	node, errs := parser.Parse(src)
+	v, errs := parser.Parse(src)
 	if len(errs) > 0 {
 		return nil, errs
 	}
-	return NewContext(nil).Eval(node).Value(), nil
+	return NewContext(nil).Eval(v).Value(), nil
 }

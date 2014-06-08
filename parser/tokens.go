@@ -59,7 +59,7 @@ type tokenInfo struct {
 	// text is the list of valid runes of this token.
 	text []rune
 	// ref contains information about where the token comes from.
-	ref SourceRef
+	ref *SourceRef
 	// id is the lexer token ID, using tok* symbols.
 	id tokenID
 	// value is the parsed value of the token - can be a string, int, nil, ...
@@ -86,14 +86,12 @@ func (t tokenInfo) Nud(ctx Context) interface{} {
 		} else {
 			ctx.Advance()
 		}
-		return []Value{NewNode(NodeExpression, sublist, t.ref)}
+		return []Value{NewAny(sublist, t.ref)}
 	// case tokClose: // Shoud never happen
 	case tokIdentifier:
-		return []Value{NewNode(NodeIdentifier, t.value, t.ref)}
-	case tokInteger:
-		return []Value{NewNode(NodeInteger, t.value, t.ref)}
-	case tokFloat:
-		return []Value{NewNode(NodeFloat, t.value, t.ref)}
+		return []Value{NewAny(Identifier(t.value.(string)), t.ref)}
+	case tokInteger, tokFloat:
+		return []Value{NewAny(t.value, t.ref)}
 	case tokEOF:
 		// Needed for when an open parenthesis (or similar) is just before the end
 		// of the input.
@@ -128,14 +126,12 @@ func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
 		} else {
 			ctx.Advance()
 		}
-		return append(left.([]Value), NewNode(NodeExpression, sublist, t.ref))
+		return append(left.([]Value), NewAny(sublist, t.ref))
 	// case tokClose: // Should never happen.
 	case tokIdentifier:
-		return append(left.([]Value), NewNode(NodeIdentifier, t.value, t.ref))
-	case tokInteger:
-		return append(left.([]Value), NewNode(NodeInteger, t.value, t.ref))
-	case tokFloat:
-		return append(left.([]Value), NewNode(NodeFloat, t.value, t.ref))
+		return append(left.([]Value), NewAny(Identifier(t.value.(string)), t.ref))
+	case tokInteger, tokFloat:
+		return append(left.([]Value), NewAny(t.value, t.ref))
 	}
 
 	ctx.Error(Error{

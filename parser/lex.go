@@ -39,7 +39,7 @@ func (c ErrorCode) String() string {
 type Error struct {
 	Msg  string
 	Code ErrorCode
-	Ref  SourceRef
+	Ref  *SourceRef
 }
 
 func (e Error) Error() string {
@@ -70,7 +70,7 @@ type lexer struct {
 	token   *tokenInfo
 	tokens  chan tokenInfo
 	errors  []string
-	program *Node
+	program Value
 }
 
 // peek looks one rune ahead in the input but does not advance the current
@@ -98,7 +98,7 @@ func (l *lexer) advance() rune {
 func (l *lexer) accept() tokenInfo {
 	t := l.token
 	l.token = &tokenInfo{
-		ref: SourceRef{
+		ref: &SourceRef{
 			Source: l.source,
 			Line:   l.line,
 			Column: l.nextCol,
@@ -204,7 +204,7 @@ func (l *lexer) Next() Token {
 	if !ok {
 		token = tokenInfo{
 			id: tokEOF,
-			ref: SourceRef{
+			ref: &SourceRef{
 				Source: l.source,
 				Line:   l.line,
 				Column: l.nextCol,

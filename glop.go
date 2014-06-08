@@ -33,7 +33,7 @@ func expandFilename(s string) (string, error) {
 
 // refContext prints on stderr what is on the line referenced by the provided
 // source reference.
-func refContext(ref parser.SourceRef, prefix string) {
+func refContext(ref *parser.SourceRef, prefix string) {
 	line, err := ref.Source.Line(ref.Line)
 	if err == nil {
 		// TODO: This is probably going to end up corrupting the term if
@@ -64,9 +64,9 @@ func main() {
 
 	// Prepare runtime environment
 	ctx := glopRuntime.NewContext(nil)
-	ctx.Set("exit", func() {
+	ctx.Set("exit", parser.NewAny(func() {
 		os.Exit(0)
-	})
+	}, nil))
 
 	// REPL main loop
 	for i := 0; ; i++ {
@@ -97,7 +97,8 @@ func main() {
 		}
 
 		// Execution
-		var result, recov interface{}
+		var recov interface{}
+		var result parser.Value
 		var stack []byte
 		func() {
 			defer func() {
@@ -120,7 +121,8 @@ func main() {
 				}
 			}
 		} else {
-			fmt.Printf("Out [%d]: <%T>%#+v\n", i, result, result)
+			v := result.Value()
+			fmt.Printf("Out [%d]: <%T>%#+v\n", i, v, v)
 		}
 	}
 }

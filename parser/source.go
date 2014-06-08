@@ -80,16 +80,16 @@ type SourceRef struct {
 
 // Parse will take the provided source, parse it, and ensure that only one root
 // node is returned.
-func Parse(src *Source) (*Node, []error) {
+func Parse(src *Source) (Value, []error) {
 	r, errs := TopDownParse(newLexer(src))
 	result := r.([]Value)
-	var n *Node
+	var n Value
 	if len(result) == 0 {
 		errs = append(errs, errors.New("no node found"))
 	} else if len(result) != 1 {
 		errs = append(errs, fmt.Errorf("obtained more than one node: %v", result))
 	} else {
-		n = result[0].(*Node)
+		n = result[0]
 	}
 
 	return n, errs
