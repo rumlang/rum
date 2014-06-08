@@ -144,11 +144,12 @@ func TestParsingErrors(t *testing.T) {
 	}
 
 	for input, expected := range tests {
-		_, errs := Parse(NewSource(input))
-		if len(errs) != 1 {
+		_, err := Parse(NewSource(input))
+		errs := err.(MultiError)
+		if len(errs.Errors) != 1 {
 			t.Errorf("Input %q should have 1 error; instead: %v", input, errs)
 		} else {
-			err := errs[0].(Error)
+			err := errs.Errors[0].(Error)
 			if err.Code != expected.code {
 				t.Errorf("Input %q should have returned error code %d; instead: %d", input, expected.code, err.Code)
 			}

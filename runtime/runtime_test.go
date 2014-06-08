@@ -7,8 +7,16 @@ import (
 	"github.com/palats/glop/parser"
 )
 
+func parseEval(src *parser.Source) (interface{}, error) {
+	v, err := parser.Parse(src)
+	if err != nil {
+		return nil, err
+	}
+	return NewContext(nil).Eval(v).Value(), nil
+}
+
 func TestQuote(t *testing.T) {
-	r, err := ParseEval(parser.NewSource("(quote (+ 1 2))"))
+	r, err := parseEval(parser.NewSource("(quote (+ 1 2))"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +87,7 @@ func TestValid(t *testing.T) {
 	}
 
 	for input, expected := range valid {
-		r, err := ParseEval(parser.NewSource(input))
+		r, err := parseEval(parser.NewSource(input))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -99,7 +107,7 @@ func TestValidList(t *testing.T) {
 	}
 
 	for input, expected := range valid {
-		r, err := ParseEval(parser.NewSource(input))
+		r, err := parseEval(parser.NewSource(input))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -135,7 +143,7 @@ func TestPanic(t *testing.T) {
 			defer func() {
 				r = recover()
 			}()
-			ParseEval(parser.NewSource(s))
+			parseEval(parser.NewSource(s))
 		}()
 
 		if r == nil {
@@ -150,7 +158,7 @@ func TestUnknownVariable(t *testing.T) {
 		defer func() {
 			r = recover()
 		}()
-		ParseEval(parser.NewSource("(a)"))
+		parseEval(parser.NewSource("(a)"))
 	}()
 	if r == nil {
 		t.Fatalf("Expected a panic, got nothing")

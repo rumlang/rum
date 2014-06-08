@@ -3,6 +3,8 @@ package runtime
 import (
 	"fmt"
 	"reflect"
+	"runtime"
+	"strings"
 
 	log "github.com/golang/glog"
 	"github.com/palats/glop/parser"
@@ -31,11 +33,28 @@ type Error struct {
 }
 
 func (e Error) String() string {
-	return fmt.Sprintf("runtime error: %s[%d] - %s", e.Code, e.Code, e.Msg)
+	prefix := "  "
+	out := fmt.Sprintf("runtime error: %s[%d] - %s\n", e.Code, e.Code, e.Msg)
+	out += fmt.Sprintf(e.Ref.Context(strings.Repeat(" ", len(prefix)+1)))
+	return out
 }
 
 func (e Error) Error() string {
 	return e.String()
+}
+
+type PanicError struct {
+	Recovered interface{}
+	Stack     []byte
+}
+
+func (p PanicError) Error() string {
+	prefix := ""
+	out := fmt.Sprintf("%s %v\n", prefix, p.Recovered)
+	for _, line := range strings.Split(string(p.Stack), "\n") {
+		out += fmt.Sprintf("%s  %s\n", prefix, line)
+	}
+	return out
 }
 
 // Internal is the type used to recognized internal functions (for which
@@ -71,7 +90,7 @@ func (c *Context) Set(id parser.Identifier, v parser.Value) parser.Value {
 }
 
 // Eval takes the provided value, evaluates it based on the current content of
-// the context and returns the result.
+// the context and returns the result. All errors are sent through panics.
 func (c *Context) Eval(input parser.Value) parser.Value {
 	switch data := input.Value().(type) {
 	case []parser.Value:
@@ -113,6 +132,31 @@ func (c *Context) Eval(input parser.Value) parser.Value {
 		// If it is neither an identifier or a list, just return the value.
 		return input
 	}
+}
+
+func (c *Context) SafeEval(root parser.Value) (parser.Value, error) {
+	var recov interface{}
+	var result parser.Value
+	var stack []byte
+	func() {
+		defer func() {
+			const size = 16384
+			stack = make([]byte, size)
+			// Unfortunately, that also catch itself, adding noise to the trace.
+			stack = stack[:runtime.Stack(stack, false)]
+			recov = recover()
+		}()
+		result = c.Eval(root)
+	}()
+
+	if recov != nil {
+		if details, ok := recov.(Error); ok {
+			return nil, details
+		}
+		return nil, PanicError{Recovered: recov, Stack: stack}
+	}
+
+	return result, nil
 }
 
 func NewContext(parent *Context) *Context {
@@ -263,12 +307,4 @@ func Cdr(elt []parser.Value) []parser.Value {
 
 func Length(elt []parser.Value) int64 {
 	return int64(len(elt))
-}
-
-func ParseEval(src *parser.Source) (interface{}, []error) {
-	v, errs := parser.Parse(src)
-	if len(errs) > 0 {
-		return nil, errs
-	}
-	return NewContext(nil).Eval(v).Value(), nil
 }

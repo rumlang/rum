@@ -3,8 +3,27 @@ package parser
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"unicode/utf8"
 )
+
+// MultiError holds details about parsing errors obtained when calling Parse.
+type MultiError struct {
+	Errors []error
+}
+
+func (e MultiError) Error() string {
+	prefix := ""
+	out := fmt.Sprintf("%d parsing errors:\n", len(e.Errors))
+	for _, err := range e.Errors {
+		out += fmt.Sprintf("%s %s\n", prefix, err.Error())
+
+		if details, ok := err.(Error); ok {
+			out += fmt.Sprint(details.Ref.Context(strings.Repeat(" ", len(prefix)+1)))
+		}
+	}
+	return out
+}
 
 // Source holds a rune representation of source code.
 type Source struct {
@@ -78,9 +97,26 @@ type SourceRef struct {
 	Column int
 }
 
+// Context generates a description of the provided source reference. It will
+// end with a new line and may contain multiple lines.
+func (ref *SourceRef) Context(prefix string) string {
+	line, err := ref.Source.Line(ref.Line)
+	if err != nil {
+		return fmt.Sprintf("%sunable to get source info: %s\n", prefix, err)
+	}
+
+	// TODO: This is probably going to end up corrupting the term if
+	// the input is not clean, so we might want more escaping.
+	r := fmt.Sprintf("%s%s\n", prefix, strings.TrimRight(string(line), "\n"))
+	if ref.Column >= 0 && ref.Column <= len(line) {
+		r += fmt.Sprintf("%s%s^\n", prefix, strings.Repeat("-", ref.Column))
+	}
+	return r
+}
+
 // Parse will take the provided source, parse it, and ensure that only one root
 // node is returned.
-func Parse(src *Source) (Value, []error) {
+func Parse(src *Source) (Value, error) {
 	r, errs := TopDownParse(newLexer(src))
 	result := r.([]Value)
 	var n Value
@@ -92,5 +128,8 @@ func Parse(src *Source) (Value, []error) {
 		n = result[0]
 	}
 
-	return n, errs
+	if len(errs) > 0 {
+		return n, MultiError{Errors: errs}
+	}
+	return n, nil
 }
