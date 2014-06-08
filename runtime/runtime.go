@@ -129,6 +129,11 @@ func NewContext(parent *Context) *Context {
 		"if":     Internal(If),
 		"lambda": Internal(Lambda),
 
+		"cons":   Cons,
+		"car":    Car,
+		"cdr":    Cdr,
+		"length": Length,
+
 		"type": Type,
 
 		"true":  true,
@@ -237,6 +242,27 @@ func Lambda(ctx *Context, args ...parser.Value) parser.Value {
 
 func Type(v interface{}) string {
 	return fmt.Sprintf("%T", v)
+}
+
+// Cons implements the [x]+y operator.
+func Cons(elt interface{}, tail []parser.Value) []parser.Value {
+	l := []parser.Value{parser.NewAny(elt, nil)}
+	l = append(l, tail...)
+	return l
+}
+
+// Car implements the x[0] operator.
+func Car(elt []parser.Value) interface{} {
+	return elt[0].Value()
+}
+
+// Cdr implements the x[1:] operator.
+func Cdr(elt []parser.Value) []parser.Value {
+	return elt[1:]
+}
+
+func Length(elt []parser.Value) int64 {
+	return int64(len(elt))
 }
 
 func ParseEval(src *parser.Source) (interface{}, []error) {

@@ -1,4 +1,4 @@
-// Package parser implements that lex&grammer of the language.
+// Package parser implements that lex&grammar of the language.
 // This file implements a (generic) topdown parser.
 package parser
 

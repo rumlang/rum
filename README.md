@@ -33,7 +33,7 @@ Features
 
 Available list of functions is in `runtime/runtime.go`, in the `NewContext` function. Currently:
 
-* Basic lisp: `begin`, `quote`, `define`, `set!`, `if`, `lambda`
+* Basic lisp: `begin`, `quote`, `define`, `set!`, `if`, `lambda`, `cons`, `car`, `cdr`
 
 * Constants: `true`, `false`
 

@@ -72,6 +72,10 @@ func TestValid(t *testing.T) {
 		"(begin (define n 7) (define d (lambda (n) (+ n n))) (+ n (d 3)))": int64(13),
 		// Test float
 		".3": float64(.3),
+		// Test car
+		"(car (quote (1 2 3)))": int64(1),
+		// Test length
+		"(length (quote (1 2 3)))": int64(3),
 	}
 
 	for input, expected := range valid {
@@ -85,6 +89,33 @@ func TestValid(t *testing.T) {
 	}
 }
 
+func TestValidList(t *testing.T) {
+	valid := map[string][]interface{}{
+		// Test cons
+		"(cons 1 (quote (2 3)))":                                    []interface{}{int64(1), int64(2), int64(3)},
+		"(begin (define a (quote (1 2 3))) (cons (car a) (cdr a)))": []interface{}{int64(1), int64(2), int64(3)},
+		// Test cdr
+		"(cdr (quote (1 2 3)))": []interface{}{int64(2), int64(3)},
+	}
+
+	for input, expected := range valid {
+		r, err := ParseEval(parser.NewSource(input))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if _, ok := r.([]parser.Value); !ok {
+			t.Errorf("Expected a []Value; got: %T", r)
+		}
+
+		for i, v := range r.([]parser.Value) {
+			if v.Value() != expected[i] {
+				t.Errorf("Item %d - expected %v, got: %v", i, expected[i], v.Value())
+			}
+		}
+	}
+}
+
 func TestPanic(t *testing.T) {
 	panics := []string{
 		"(6)",
@@ -94,6 +125,8 @@ func TestPanic(t *testing.T) {
 		"(+float64 1 2)",
 		"(*int64 1.0 2.0)",
 		"(*float64 1 2)",
+		"(cons 1 2)",
+		"(cons 1 (2 3))",
 	}
 
 	for _, s := range panics {
