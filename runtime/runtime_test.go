@@ -1,27 +1,28 @@
 package runtime
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/palats/glop/parser"
 )
 
-func parseEval(src *parser.Source) (interface{}, error) {
-	v, err := parser.Parse(src)
+func mustParse(s string) parser.Value {
+	v, err := parser.Parse(parser.NewSource(s))
 	if err != nil {
-		return nil, err
+		panic(fmt.Sprintf("Unable to parse %q: %v", err))
 	}
-	return NewContext(nil).Eval(v).Value(), nil
+	return v
+}
+
+func mustEval(s string) parser.Value {
+	root := mustParse(s)
+	return NewContext(nil).Eval(root)
 }
 
 func TestQuote(t *testing.T) {
-	r, err := parseEval(parser.NewSource("(quote (+ 1 2))"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	n := r.([]parser.Value)
-
+	n := mustEval("(quote (+ 1 2))").Value().([]parser.Value)
 	if len(n) != 3 {
 		t.Errorf("Expected 3 children, got: %v", n)
 	}
@@ -87,10 +88,7 @@ func TestValid(t *testing.T) {
 	}
 
 	for input, expected := range valid {
-		r, err := parseEval(parser.NewSource(input))
-		if err != nil {
-			t.Fatal(err)
-		}
+		r := mustEval(input).Value()
 		if !reflect.DeepEqual(r, expected) {
 			t.Errorf("Input %q -- expected <%T>%#+v, got: <%T>%#+v", input, expected, expected, r, r)
 		}
@@ -107,10 +105,7 @@ func TestValidList(t *testing.T) {
 	}
 
 	for input, expected := range valid {
-		r, err := parseEval(parser.NewSource(input))
-		if err != nil {
-			t.Fatal(err)
-		}
+		r := mustEval(input).Value()
 
 		if _, ok := r.([]parser.Value); !ok {
 			t.Errorf("Expected a []Value; got: %T", r)
@@ -143,22 +138,31 @@ func TestPanic(t *testing.T) {
 			defer func() {
 				r = recover()
 			}()
-			parseEval(parser.NewSource(s))
+			mustEval(s)
 		}()
 
 		if r == nil {
 			t.Fatalf("%q should have generated a panic.", s)
 		}
+
+		// Now try with SafeEval
+		root := mustParse(s)
+		_, err := NewContext(nil).SafeEval(root)
+		if err == nil {
+			t.Fatalf("%q should have generated an error.", s)
+		}
 	}
 }
 
 func TestUnknownVariable(t *testing.T) {
+	s := "(a)"
+
 	var r interface{}
 	func() {
 		defer func() {
 			r = recover()
 		}()
-		parseEval(parser.NewSource("(a)"))
+		mustEval(s)
 	}()
 	if r == nil {
 		t.Fatalf("Expected a panic, got nothing")
@@ -170,5 +174,15 @@ func TestUnknownVariable(t *testing.T) {
 	}
 	if e.Code != ErrUnknownVariable {
 		t.Errorf("Expected an UnknownVariable; instead: %v", e)
+	}
+
+	// Now try with SafeEval
+	root := mustParse(s)
+	_, err := NewContext(nil).SafeEval(root)
+	if err == nil {
+		t.Fatalf("%q should have generated an error.", s)
+	}
+	if _, ok := err.(Error); !ok {
+		t.Fatalf("%q should have generated a known error; instead: %v", err)
 	}
 }

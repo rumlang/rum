@@ -134,6 +134,9 @@ func (c *Context) Eval(input parser.Value) parser.Value {
 	}
 }
 
+// SaveEval does a normal evaluation like Eval but catches all panics and send
+// them as the error parameter. Panics coming from known problems are just
+// Error value; otherwise, the panic is encapsulate in a PanicError.
 func (c *Context) SafeEval(root parser.Value) (parser.Value, error) {
 	var recov interface{}
 	var result parser.Value

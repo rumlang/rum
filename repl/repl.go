@@ -13,11 +13,14 @@ import (
 )
 
 // ExpandFilename replace '~/' with the user home directory.
-func ExpandFilename(s string) (string, error) {
+func ExpandFilename(s string, u *user.User) (string, error) {
 	if strings.HasPrefix(s, "~/") {
-		u, err := user.Current()
-		if err != nil {
-			return "", err
+		if u == nil {
+			var err error
+			u, err = user.Current()
+			if err != nil {
+				return "", err
+			}
 		}
 		s = u.HomeDir + s[1:]
 	}
@@ -29,7 +32,7 @@ func ExpandFilename(s string) (string, error) {
 func REPL(historyFilename string) error {
 	// Initialize history file
 	if historyFilename != "" {
-		fname, err := ExpandFilename(historyFilename)
+		fname, err := ExpandFilename(historyFilename, nil)
 		if err != nil {
 			return fmt.Errorf("%q is invalid: %v", historyFilename, err)
 		}

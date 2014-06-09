@@ -100,6 +100,10 @@ type SourceRef struct {
 // Context generates a description of the provided source reference. It will
 // end with a new line and may contain multiple lines.
 func (ref *SourceRef) Context(prefix string) string {
+	if ref.Source == nil {
+		return fmt.Sprintf("no source info")
+	}
+
 	line, err := ref.Source.Line(ref.Line)
 	if err != nil {
 		return fmt.Sprintf("%sunable to get source info: %s\n", prefix, err)

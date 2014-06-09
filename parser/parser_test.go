@@ -95,6 +95,11 @@ func TestParsingExpression(t *testing.T) {
 			if err == nil {
 				t.Errorf("Input %q parsed instead of generating error", input)
 			}
+
+			// Check that the error does not have issue generating context and is of
+			// the right type.
+			m := err.(MultiError)
+			m.Error()
 			continue
 		}
 
@@ -169,5 +174,27 @@ func TestSource(t *testing.T) {
 	}
 	if l, _ := s.Line(1); string(l) != " " {
 		t.Errorf("expected %q, got %q", " ", l)
+	}
+}
+
+func TestSourceRef(t *testing.T) {
+	// Check that SourceRef context generator is resilient - it should not
+	// failed, even if the reference is broken.
+	src := NewSource("foo\nbar")
+
+	refs := []SourceRef{
+		{},
+		{Source: src},
+		{Source: src, Line: 0},
+		{Source: src, Line: -1},
+		{Source: src, Line: 10},
+		{Source: src, Line: 1, Column: -1},
+		{Source: src, Line: 1, Column: 0},
+		{Source: src, Line: 1, Column: 100},
+		{Source: src, Column: 1},
+	}
+
+	for _, ref := range refs {
+		(&ref).Context("  ")
 	}
 }
