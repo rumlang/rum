@@ -6,18 +6,22 @@ import (
 	"runtime"
 	"strings"
 
-	log "github.com/golang/glog"
 	"github.com/palats/glop/parser"
 )
 
 const (
-	ErrUnknownVariable = iota
+	// ErrPanic is an error caused by a panic within the interpreter.
+	ErrPanic = iota
+	// ErrUnknownVariable is raised when trying to resolve an unknown symbol.
+	ErrUnknownVariable
 )
 
 type ErrorCode int
 
 func (c ErrorCode) String() string {
 	switch c {
+	case ErrPanic:
+		return "Panic"
 	case ErrUnknownVariable:
 		return "UnknownVariable"
 	default:
@@ -29,32 +33,39 @@ func (c ErrorCode) String() string {
 type Error struct {
 	Code ErrorCode
 	Msg  string
-	Ref  *parser.SourceRef
+	// Stack is the glop call stack corresponding to where the error was raised.
+	// First value is inner-most eval'ed value.
+	Stack []parser.Value
+
+	PanicRecovered interface{}
+	PanicStack     []byte
 }
 
-func (e Error) String() string {
-	prefix := "  "
+func (e *Error) String() string {
 	out := fmt.Sprintf("runtime error: %s[%d] - %s\n", e.Code, e.Code, e.Msg)
-	out += fmt.Sprintf(e.Ref.Context(strings.Repeat(" ", len(prefix)+1)))
-	return out
-}
 
-func (e Error) Error() string {
-	return e.String()
-}
+	first := true
+	for _, v := range e.Stack {
+		if first {
+			out += "  # triggered at:\n"
+			first = false
+		} else {
+			out += "  # called from:\n"
+		}
+		out += fmt.Sprintf(v.Ref().Context("    "))
+	}
 
-type PanicError struct {
-	Recovered interface{}
-	Stack     []byte
-}
-
-func (p PanicError) Error() string {
-	prefix := ""
-	out := fmt.Sprintf("%s %v\n", prefix, p.Recovered)
-	for _, line := range strings.Split(string(p.Stack), "\n") {
-		out += fmt.Sprintf("%s  %s\n", prefix, line)
+	if e.Code == ErrPanic {
+		out += "  # Interpreter trace:\n"
+		for _, line := range strings.Split(string(e.PanicStack), "\n") {
+			out += fmt.Sprintf("    %s\n", line)
+		}
 	}
 	return out
+}
+
+func (e *Error) Error() string {
+	return e.String()
 }
 
 // Internal is the type used to recognized internal functions (for which
@@ -70,18 +81,18 @@ type Context struct {
 // Get returns the content of the specified variable. It will automatically
 // look up parent context if needed. Generate a panic with an Error object if
 // the specified variable does not exists.
-func (c *Context) Get(id parser.Identifier) (parser.Value, error) {
+func (c *Context) Get(id parser.Identifier) parser.Value {
 	v, ok := c.env[id]
 	if !ok {
 		if c.parent != nil {
 			return c.parent.Get(id)
 		}
-		return nil, Error{
+		panic(&Error{
 			Code: ErrUnknownVariable,
 			Msg:  fmt.Sprintf("%q does not exist", string(id)),
-		}
+		})
 	}
-	return v, nil
+	return v
 }
 
 func (c *Context) Set(id parser.Identifier, v parser.Value) parser.Value {
@@ -89,58 +100,55 @@ func (c *Context) Set(id parser.Identifier, v parser.Value) parser.Value {
 	return v
 }
 
-// Eval takes the provided value, evaluates it based on the current content of
-// the context and returns the result. All errors are sent through panics.
-func (c *Context) Eval(input parser.Value) parser.Value {
+// dispatch takes the provided value, evaluates it based on the current content
+// of the context and returns the result. All errors are sent through panics.
+func (c *Context) dispatch(input parser.Value) (parser.Value, *Error) {
 	switch data := input.Value().(type) {
 	case []parser.Value:
-		log.Info("Expr:Eval", input)
-
 		if len(data) <= 0 {
-			return nil
+			return nil, nil
 		}
 
-		fn := c.Eval(data[0]).Value()
+		fn, err := c.eval(data[0])
+		if err != nil {
+			return nil, err
+		}
 
-		if internal, ok := fn.(Internal); ok {
-			return internal(c, data[1:]...)
+		if internal, ok := fn.Value().(Internal); ok {
+			return internal(c, data[1:]...), nil
 		}
 
 		var args []reflect.Value
 		for _, child := range data[1:] {
-			args = append(args, reflect.ValueOf(c.Eval(child).Value()))
+			v, err := c.eval(child)
+			if err != nil {
+				return nil, err
+			}
+			args = append(args, reflect.ValueOf(v.Value()))
 		}
-		result := reflect.ValueOf(fn).Call(args)
+		result := reflect.ValueOf(fn.Value()).Call(args)
 		if len(result) == 0 {
-			return parser.NewAny(nil, nil)
+			return parser.NewAny(nil, nil), nil
 		}
 		if len(result) == 1 {
-			return parser.NewAny(result[0].Interface(), nil)
+			return parser.NewAny(result[0].Interface(), nil), nil
 		}
 		panic("Multiple arguments unsupported")
 	case parser.Identifier:
-		v, err := c.Get(data)
-		if err == nil {
-			return v
-		}
-		if e, ok := err.(Error); ok {
-			e.Ref = input.Ref()
-			panic(e)
-		}
-		panic(err)
+		return c.Get(data), nil
 	default:
 		// If it is neither an identifier or a list, just return the value.
-		return input
+		return input, nil
 	}
 }
 
-// SaveEval does a normal evaluation like Eval but catches all panics and send
-// them as the error parameter. Panics coming from known problems are just
-// Error value; otherwise, the panic is encapsulate in a PanicError.
-func (c *Context) SafeEval(root parser.Value) (parser.Value, error) {
+// eval evaluates the provided value. It makes sure to catch any panic and
+// create an error with full stack trace when that happens.
+func (c *Context) eval(input parser.Value) (parser.Value, *Error) {
 	var recov interface{}
 	var result parser.Value
 	var stack []byte
+	var err *Error
 	func() {
 		defer func() {
 			const size = 16384
@@ -149,17 +157,43 @@ func (c *Context) SafeEval(root parser.Value) (parser.Value, error) {
 			stack = stack[:runtime.Stack(stack, false)]
 			recov = recover()
 		}()
-		result = c.Eval(root)
+		result, err = c.dispatch(input)
 	}()
 
 	if recov != nil {
-		if details, ok := recov.(Error); ok {
-			return nil, details
+		if details, ok := recov.(*Error); ok {
+			err = details
+		} else {
+			err = &Error{
+				Code:           ErrPanic,
+				Msg:            fmt.Sprintf("%v", recov),
+				PanicRecovered: recov,
+				PanicStack:     stack,
+			}
 		}
-		return nil, PanicError{Recovered: recov, Stack: stack}
 	}
 
-	return result, nil
+	if err != nil {
+		err.Stack = append(err.Stack, input)
+	}
+
+	return result, err
+}
+
+// TryEval evaluates the provided value and catch any panic, return an error
+// instead.
+func (c *Context) TryEval(input parser.Value) (parser.Value, *Error) {
+	return c.eval(input)
+}
+
+// MustEval evaluates the provided value, generatic panics when something bad
+// happens. Panics will be *Error instances, containing the call stack.
+func (c *Context) MustEval(input parser.Value) parser.Value {
+	v, err := c.eval(input)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
 
 func NewContext(parent *Context) *Context {
@@ -175,6 +209,8 @@ func NewContext(parent *Context) *Context {
 		"set!":   Internal(Define),
 		"if":     Internal(If),
 		"lambda": Internal(Lambda),
+
+		"panic": Panic,
 
 		"cons":   Cons,
 		"car":    Car,
@@ -232,7 +268,7 @@ func Define(ctx *Context, args ...parser.Value) parser.Value {
 	if !ok {
 		panic("TODO")
 	}
-	return ctx.Set(id, ctx.Eval(args[1]))
+	return ctx.Set(id, ctx.MustEval(args[1]))
 }
 
 // If implements the 'if' builtin function. It has to be an Internal interface
@@ -243,16 +279,16 @@ func If(ctx *Context, args ...parser.Value) parser.Value {
 		panic("Invalid arguments")
 	}
 
-	cond := ctx.Eval(args[0]).Value().(bool)
+	cond := ctx.MustEval(args[0]).Value().(bool)
 	if cond {
-		return ctx.Eval(args[1])
+		return ctx.MustEval(args[1])
 	}
 
 	if len(args) <= 2 {
 		return parser.NewAny(nil, nil)
 	}
 
-	return ctx.Eval(args[2])
+	return ctx.MustEval(args[2])
 }
 
 func Lambda(ctx *Context, args ...parser.Value) parser.Value {
@@ -279,9 +315,9 @@ func Lambda(ctx *Context, args ...parser.Value) parser.Value {
 		}
 		nested := NewContext(implCtx)
 		for i, name := range names {
-			nested.Set(name, implCtx.Eval(args[i]))
+			nested.Set(name, implCtx.MustEval(args[i]))
 		}
-		return nested.Eval(implValue)
+		return nested.MustEval(implValue)
 	}
 
 	return parser.NewAny(Internal(impl), nil)
@@ -310,4 +346,8 @@ func Cdr(elt []parser.Value) []parser.Value {
 
 func Length(elt []parser.Value) int64 {
 	return int64(len(elt))
+}
+
+func Panic(v interface{}) {
+	panic(v)
 }

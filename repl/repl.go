@@ -67,7 +67,7 @@ func REPL(historyFilename string) error {
 		root, err := parser.Parse(parser.NewSource(raw))
 		if err == nil {
 			// Executing
-			out, err = ctx.SafeEval(root)
+			out, err = ctx.TryEval(root)
 		}
 
 		if err != nil {

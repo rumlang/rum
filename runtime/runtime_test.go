@@ -17,8 +17,7 @@ func mustParse(s string) parser.Value {
 }
 
 func mustEval(s string) parser.Value {
-	root := mustParse(s)
-	return NewContext(nil).Eval(root)
+	return NewContext(nil).MustEval(mustParse(s))
 }
 
 func TestQuote(t *testing.T) {
@@ -130,6 +129,7 @@ func TestPanic(t *testing.T) {
 		"(*float64 1 2)",
 		"(cons 1 2)",
 		"(cons 1 (2 3))",
+		"(panic 10)",
 	}
 
 	for _, s := range panics {
@@ -145,9 +145,9 @@ func TestPanic(t *testing.T) {
 			t.Fatalf("%q should have generated a panic.", s)
 		}
 
-		// Now try with SafeEval
+		// Now try with TryEval
 		root := mustParse(s)
-		_, err := NewContext(nil).SafeEval(root)
+		_, err := NewContext(nil).TryEval(root)
 		if err == nil {
 			t.Fatalf("%q should have generated an error.", s)
 		}
@@ -168,7 +168,7 @@ func TestUnknownVariable(t *testing.T) {
 		t.Fatalf("Expected a panic, got nothing")
 	}
 
-	e, ok := r.(Error)
+	e, ok := r.(*Error)
 	if !ok {
 		t.Fatalf("Expected a runtime.Error; instead: %v", r)
 	}
@@ -176,13 +176,10 @@ func TestUnknownVariable(t *testing.T) {
 		t.Errorf("Expected an UnknownVariable; instead: %v", e)
 	}
 
-	// Now try with SafeEval
+	// Now try with TryEval
 	root := mustParse(s)
-	_, err := NewContext(nil).SafeEval(root)
+	_, err := NewContext(nil).TryEval(root)
 	if err == nil {
 		t.Fatalf("%q should have generated an error.", s)
-	}
-	if _, ok := err.(Error); !ok {
-		t.Fatalf("%q should have generated a known error; instead: %v", err)
 	}
 }
