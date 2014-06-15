@@ -94,6 +94,13 @@ func TestParsingExpression(t *testing.T) {
 		// Test comments
 		"( ; )":        -1,
 		"(a ; b \n c)": 2,
+
+		// Test quote
+		"(a ')":      -1,
+		"('a 'b c)":  3,
+		"('(a b) c)": 2,
+		"(a 'b c)":   3,
+		"(a '(b c))": 2,
 	}
 
 	for input, count := range tests {

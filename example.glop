@@ -1,3 +1,5 @@
+; vim: filetype=lisp
+
 ; Execute one statement after the other
 (begin
   ; Canonical example
@@ -9,4 +11,9 @@
   ; Create a function, run it and print the result.
   (define area
     (lambda (r) (* 3.141592653 (* r r))))
-  (print (area 10.0)))
+  (print (area 10.0))
+
+  ; Quote
+  (set! plop '(a b c))
+  (print plop)
+)

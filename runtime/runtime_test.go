@@ -29,7 +29,7 @@ func TestQuote(t *testing.T) {
 
 func TestValid(t *testing.T) {
 	valid := map[string]interface{}{
-		// Test '+'
+		// Test operators
 		"(+ 1 2)":            int64(3),
 		"(+int64 1 2)":       int64(3),
 		"(+ 1.0 2.0)":        float64(3),
@@ -106,6 +106,8 @@ func TestValidList(t *testing.T) {
 		"(begin (define a (quote (1 2 3))) (cons (car a) (cdr a)))": []interface{}{int64(1), int64(2), int64(3)},
 		// Test cdr
 		"(cdr (quote (1 2 3)))": []interface{}{int64(2), int64(3)},
+		// Test single quote notation
+		"'(1 2)": []interface{}{int64(1), int64(2)},
 	}
 
 	for input, expected := range valid {

@@ -122,6 +122,8 @@ func (l *lexer) stateIdentifier() stateFn {
 			next = l.stateComment
 		case r == '"':
 			next = l.stateString
+		case r == '\'':
+			next = l.stateQuote
 		case unicode.IsSpace(r):
 			next = l.stateSpace
 		case r == 0: // rune is 0 when scan is finished.
@@ -179,6 +181,15 @@ func (l *lexer) stateClose() stateFn {
 	token := l.accept()
 	// TODO: check that it is the right character and fail otherwise.
 	token.id = tokClose
+	l.tokens <- token
+	return l.stateIdentifier
+}
+
+func (l *lexer) stateQuote() stateFn {
+	l.advance()
+	token := l.accept()
+	// TODO: check that it is the right character and fail otherwise.
+	token.id = tokQuote
 	l.tokens <- token
 	return l.stateIdentifier
 }
