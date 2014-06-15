@@ -86,6 +86,9 @@ func TestValid(t *testing.T) {
 		"(car (quote (1 2 3)))": int64(1),
 		// Test length
 		"(length (quote (1 2 3)))": int64(3),
+		// Test string
+		`"plop"`:   "plop",
+		`"p\"lop"`: `p"lop`,
 	}
 
 	for input, expected := range valid {

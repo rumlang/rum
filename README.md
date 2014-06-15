@@ -36,6 +36,8 @@ go test ./...
 Features
 --------
 
+File `example.glop` shows a few examples.
+
 Available list of functions is in `runtime/runtime.go`, in the `NewContext` function. Currently:
 
 * Basic lisp: `begin`, `quote`, `define`, `set!`, `if`, `lambda`, `cons`, `car`, `cdr`

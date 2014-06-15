@@ -120,6 +120,8 @@ func (l *lexer) stateIdentifier() stateFn {
 			next = l.stateClose
 		case r == ';':
 			next = l.stateComment
+		case r == '"':
+			next = l.stateString
 		case unicode.IsSpace(r):
 			next = l.stateSpace
 		case r == 0: // rune is 0 when scan is finished.
@@ -191,11 +193,40 @@ func (l *lexer) stateSpace() stateFn {
 }
 
 func (l *lexer) stateComment() stateFn {
-	for l.peek() != '\n' {
+	for l.peek() != '\n' && l.peek() != 0 {
 		l.advance()
 	}
 	// We don't emit anything for comments.
 	l.accept()
+	return l.stateIdentifier
+}
+
+func (l *lexer) stateString() stateFn {
+	// Get the opening quote.
+	l.advance()
+	s := ""
+	for l.peek() != '"' {
+		r := l.advance()
+
+		if r == '\\' {
+			// Just get the character after the backslash - good enough to catch
+			// escape quotes.
+			r = l.advance()
+		}
+
+		if r == 0 {
+			// TODO - generate an error
+			break
+		}
+		s += string(r)
+	}
+
+	// Get the last quote
+	l.advance()
+	token := l.accept()
+	token.id = tokString
+	token.value = s
+	l.tokens <- token
 	return l.stateIdentifier
 }
 

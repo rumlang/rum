@@ -12,7 +12,7 @@ const (
 	tokIdentifier
 	tokInteger
 	tokFloat
-	tokSpace
+	tokString
 )
 
 type tokenID int
@@ -31,8 +31,8 @@ func (t tokenID) String() string {
 		return "Integer"
 	case tokFloat:
 		return "Float"
-	case tokSpace:
-		return "Space"
+	case tokString:
+		return "String"
 	default:
 		return fmt.Sprintf("Unknown[%d", t)
 	}
@@ -48,6 +48,7 @@ var tokenPriorities = map[tokenID]int{
 	tokIdentifier: 20,
 	tokInteger:    20,
 	tokFloat:      20,
+	tokString:     20,
 }
 
 // tokenInfo give details about a token the lexer extracted - including
@@ -90,7 +91,7 @@ func (t tokenInfo) Nud(ctx Context) interface{} {
 	// case tokClose: // Shoud never happen
 	case tokIdentifier:
 		return []Value{NewAny(Identifier(t.value.(string)), t.ref)}
-	case tokInteger, tokFloat:
+	case tokInteger, tokFloat, tokString:
 		return []Value{NewAny(t.value, t.ref)}
 	case tokEOF:
 		// Needed for when an open parenthesis (or similar) is just before the end
@@ -130,7 +131,7 @@ func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
 	// case tokClose: // Should never happen.
 	case tokIdentifier:
 		return append(left.([]Value), NewAny(Identifier(t.value.(string)), t.ref))
-	case tokInteger, tokFloat:
+	case tokInteger, tokFloat, tokString:
 		return append(left.([]Value), NewAny(t.value, t.ref))
 	}
 

@@ -86,7 +86,13 @@ func TestParsingExpression(t *testing.T) {
 		"(a\nb)":            2,
 		"(1.2 .3)":          2,
 
+		// Test strings
+		`(" `:        -1,
+		`("a b")`:    1,
+		`("a \" b")`: 1,
+
 		// Test comments
+		"( ; )":        -1,
 		"(a ; b \n c)": 2,
 	}
 

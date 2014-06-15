@@ -1,10 +1,12 @@
 ; Execute one statement after the other
 (begin
+  ; Canonical example
+  (print "Hello, World!")
+
   ; Simply print '42' on stdout
-  (print 42)
+  (print (+ 1 2))
 
   ; Create a function, run it and print the result.
   (define area
     (lambda (r) (* 3.141592653 (* r r))))
-  (print (area 10.0))
-)
+  (print (area 10.0)))
