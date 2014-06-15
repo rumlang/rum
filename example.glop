@@ -1,0 +1,7 @@
+(begin
+  (print 42)
+
+  (define area
+    (lambda (r) (* 3.141592653 (* r r))))
+  (print (area 10.0))
+)

@@ -65,8 +65,10 @@ func TestValid(t *testing.T) {
 		"(>= 3.0 3.0)":       true,
 		"(>= 3.0 2.0)":       true,
 		// Test 'begin'
-		"(begin 1 (+ 1 1))": int64(2),
-		"(begin)":           nil,
+		"(begin 1 (+ 1 1))":       int64(2),
+		"(begin)":                 nil,
+		"(begin (+ 1 2) (+ 3 4))": int64(7),
+		"(begin (print 1 2))":     nil,
 		// Test 'define'
 		"(begin (define a 5) a)":            int64(5),
 		"(begin (define a 5) (set! a 4) a)": int64(4),

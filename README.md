@@ -23,6 +23,11 @@ go get github.com/golang/glog
 go run $GOPATH/src/github.com/palats/glop/glop.go
 ```
 
+* Or you can execute a glop file:
+```
+go run $GOPATH/src/github.com/palats/glop/glop.go $GOPATH/src/github.com/palats/glop/example.glop
+```
+
 * To run all tests, from the glop/ directory:
 ```bash
 go test ./...
@@ -41,6 +46,8 @@ Available list of functions is in `runtime/runtime.go`, in the `NewContext` func
 
 * Operators: `==`, `!=`, `<`, `<=`, `>`, `>=`, `+`, `-`, `*` ; they look at the
   first argument to see whether they are operating on integer or floats.
+
+* Misc: `print`, `panic` (triggers a panic)
 
 
 Example:

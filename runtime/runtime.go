@@ -102,7 +102,7 @@ func (c *Context) Set(id parser.Identifier, v parser.Value) parser.Value {
 
 // dispatch takes the provided value, evaluates it based on the current content
 // of the context and returns the result. All errors are sent through panics.
-func (c *Context) dispatch(input parser.Value) (parser.Value, *Error) {
+func (c *Context) dispatch(input parser.Value) (parser.Value, error) {
 	switch data := input.Value().(type) {
 	case []parser.Value:
 		if len(data) <= 0 {
@@ -124,7 +124,16 @@ func (c *Context) dispatch(input parser.Value) (parser.Value, *Error) {
 			if err != nil {
 				return nil, err
 			}
-			args = append(args, reflect.ValueOf(v.Value()))
+			data := v.Value()
+
+			if data == nil {
+				// Do a ValueOf of the pointer to get the element afterward - that
+				// circumvent the special value with nil which is otherwise translated to
+				// an invalid element.
+				args = append(args, reflect.ValueOf(&data).Elem())
+			} else {
+				args = append(args, reflect.ValueOf(data))
+			}
 		}
 		result := reflect.ValueOf(fn.Value()).Call(args)
 		if len(result) == 0 {
@@ -143,12 +152,12 @@ func (c *Context) dispatch(input parser.Value) (parser.Value, *Error) {
 }
 
 // eval evaluates the provided value. It makes sure to catch any panic and
-// create an error with full stack trace when that happens.
-func (c *Context) eval(input parser.Value) (parser.Value, *Error) {
+// create an error (type *Error) with full stack trace when that happens.
+func (c *Context) eval(input parser.Value) (parser.Value, error) {
 	var recov interface{}
 	var result parser.Value
 	var stack []byte
-	var err *Error
+	var err error
 	func() {
 		defer func() {
 			const size = 16384
@@ -174,7 +183,7 @@ func (c *Context) eval(input parser.Value) (parser.Value, *Error) {
 	}
 
 	if err != nil {
-		err.Stack = append(err.Stack, input)
+		err.(*Error).Stack = append(err.(*Error).Stack, input)
 	}
 
 	return result, err
@@ -182,7 +191,7 @@ func (c *Context) eval(input parser.Value) (parser.Value, *Error) {
 
 // TryEval evaluates the provided value and catch any panic, return an error
 // instead.
-func (c *Context) TryEval(input parser.Value) (parser.Value, *Error) {
+func (c *Context) TryEval(input parser.Value) (parser.Value, error) {
 	return c.eval(input)
 }
 
@@ -216,6 +225,8 @@ func NewContext(parent *Context) *Context {
 		"car":    Car,
 		"cdr":    Cdr,
 		"length": Length,
+
+		"print": Print,
 
 		"type": Type,
 
@@ -350,4 +361,14 @@ func Length(elt []parser.Value) int64 {
 
 func Panic(v interface{}) {
 	panic(v)
+}
+
+func Print(args ...interface{}) {
+	for i, v := range args {
+		if i != 0 {
+			fmt.Print(" ")
+		}
+		fmt.Printf("%v", v)
+	}
+	fmt.Printf("\n")
 }

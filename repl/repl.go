@@ -71,7 +71,7 @@ func REPL(historyFilename string) error {
 		}
 
 		if err != nil {
-			fmt.Fprintf(os.Stderr, fmt.Sprintf("Error [%d]: %v\n", i, err))
+			fmt.Fprintf(os.Stderr, "Error [%d]: %v\n", i, err)
 			continue
 		}
 
