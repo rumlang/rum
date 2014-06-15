@@ -72,20 +72,22 @@ func TestLexerErrors(t *testing.T) {
 
 func TestParsingExpression(t *testing.T) {
 	tests := map[string]int{
-		"":    -1,
-		")":   -1,
-		"(":   -1,
-		"a)b": -1,
-		")b":  -1,
-		"a(b": -1,
-		"()":  0,
-		// "foo":               0,
+		"":                  -1,
+		")":                 -1,
+		"(":                 -1,
+		"a)b":               -1,
+		")b":                -1,
+		"a(b":               -1,
+		"()":                0,
 		"(foo)":             1,
 		"(a b)":             2,
 		"(a (b c))":         2,
 		"(a (b c) d (e f))": 4,
 		"(a\nb)":            2,
 		"(1.2 .3)":          2,
+
+		// Test comments
+		"(a ; b \n c)": 2,
 	}
 
 	for input, count := range tests {
