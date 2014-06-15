@@ -219,6 +219,7 @@ func NewContext(parent *Context) *Context {
 		"if":     Internal(If),
 		"lambda": Internal(Lambda),
 
+		"eval":  Internal(Eval),
 		"panic": Panic,
 
 		"cons":   Cons,
@@ -371,4 +372,21 @@ func Print(args ...interface{}) {
 		fmt.Printf("%v", v)
 	}
 	fmt.Printf("\n")
+}
+
+func Eval(ctx *Context, raw ...parser.Value) parser.Value {
+
+	// Do the normal evaluation of each parameter first - as we're in an internal
+	// function, this is not done automatically.
+	var args []parser.Value
+	for _, arg := range raw {
+		args = append(args, ctx.MustEval(arg))
+	}
+
+	// And now, actually do the eval work.
+	var result parser.Value
+	for _, arg := range args {
+		result = ctx.MustEval(arg)
+	}
+	return result
 }

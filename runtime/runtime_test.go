@@ -89,6 +89,8 @@ func TestValid(t *testing.T) {
 		// Test string
 		`"plop"`:   "plop",
 		`"p\"lop"`: `p"lop`,
+		// Test eval
+		"(begin (set! a '(+ 1 2)) (eval a))": int64(3),
 	}
 
 	for input, expected := range valid {

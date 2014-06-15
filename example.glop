@@ -16,4 +16,11 @@
   ; Quote
   (set! plop '(a b c))
   (print plop)
+
+  ; Eval
+  (set! foo '(+ 1 a))
+  (set! a 42)
+  (print (eval foo))  ; prints 43
+  (set! a 11)
+  (print (eval foo))  ; prints 12
 )
