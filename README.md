@@ -1,2 +1,2 @@
-# glisp
-CLISP writer in Go
+# gLISP
+Implementation of the programming language Common Lisp written in Go
