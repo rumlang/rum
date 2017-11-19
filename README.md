@@ -1,4 +1,4 @@
-# gLISP
+# gin (Go in numbers)
 Free software environment for statistical computing
 
 ## Proposal syntax
