@@ -25,5 +25,29 @@ Free software environment for statistical computing
   (var area
     (lambda (r) (* 3.141592653 (* r r))))
   (print (area 10.0))
-)
+
+  ; create loops with for
+  (for (print 'hello)) ; will loop while expression or funcrion return false
+  (for area (10.0 20.0 30.0) ; will interact on the list elements
+  (for (var a 1)
+    (= a 10)
+      (var a (+ a 1)
+      (print a)))
+
+  ; create if 
+  (if (= a 10)        ; if a is equal to 10 
+    (print 'Hello))   ; print Hello
+
+  (if (= a 'good)     ; if a is equal to "good"
+    (print 'good)     ; print "good"
+    (else             ; otherwise
+      (print 'bad)))  ; print "bad"
+
+  (if (= a 'good)     ; if a is equal to "good"
+    (print 'good)     ; print "good"
+    (else (= a 'bad)  ; if not and is equal to "bad"
+      (print 'bad))   ; print "bad"
+    (else             ; otherwise
+      (print 'ugly))) ; print "ugly"
+
 ```
