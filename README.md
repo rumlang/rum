@@ -1,5 +1,5 @@
 # gLISP
-Implementation of the programming language Common Lisp written in Go
+Free software environment for statistical computing
 
 ## Proposal syntax
 
