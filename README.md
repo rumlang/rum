@@ -26,10 +26,10 @@ Free software environment for statistical computing
     (lambda (r) (* 3.141592653 (* r r))))
   (print (area 10.0))
 
-  ; create loops with do
-  (do (print 'hello)) ; will loop while expression or funcrion return false
-  (do area (10.0 20.0 30.0) ; will interact on the list elements
-  (do (var a 1)
+  ; create loops with for
+  (for (print 'hello)) ; will loop while expression or funcrion return false
+  (for area (10.0 20.0 30.0) ; will interact on the list elements
+  (for (var a 1)
     (= a 10)
       (var a (+ a 1)
       (print a)))
