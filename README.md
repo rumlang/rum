@@ -33,5 +33,21 @@ Free software environment for statistical computing
     (= a 10)
       (var a (+ a 1)
       (print a)))
-)
+
+  ; create if 
+  (if (= a 10)        ; if a is equal to 10 
+    (print 'Hello))   ; print Hello
+
+  (if (= a 'good)     ; if a is equal to "good"
+    (print 'good)     ; print "good"
+    (else             ; otherwise
+      (print 'bad)))  ; print "bad"
+
+  (if (= a 'good)     ; if a is equal to "good"
+    (print 'good)     ; print "good"
+    (else (= a 'bad)  ; if not and is equal to "bad"
+      (print 'bad))   ; print "bad"
+    (else             ; otherwise
+      (print 'ugly))) ; print "ugly"
+
 ```
