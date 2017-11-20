@@ -70,7 +70,7 @@ func TestValid(t *testing.T) {
 		"(package (+ 1 2) (+ 3 4))": int64(7),
 		"(package (print 1 2))":     nil,
 		// Test 'var'
-		"(package (var a 5) a)":            int64(5),
+		"(package (var a 5) a)":           int64(5),
 		"(package (var a 5) (var a 4) a)": int64(4),
 		// Test 'if'
 		"(if true 7)":    int64(7),
