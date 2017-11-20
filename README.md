@@ -3,6 +3,7 @@
 [![Build Status](https://travis-ci.org/gin-lang/gin.svg?branch=master)](https://travis-ci.org/gin-lang/gin)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gin-lang/gin)](https://goreportcard.com/report/github.com/gin-lang/gin)
 [![Documentation](https://godoc.org/github.com/gin-lang/gin?status.svg)](http://godoc.org/github.com/gin-lang/gin)
+[![license](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/gin-lang/gin/LICENSE)
 
 Free software environment for statistical computing
 
