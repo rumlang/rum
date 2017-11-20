@@ -73,7 +73,11 @@ import (
 )
 
 func main() {
-	const input = "(print 'Hello)"
+  const input = `
+(package main
+  (print 'Hello)
+)
+`
 	s := bufio.NewScanner(strings.NewReader(input))
 	gin := gin.New()
 	err := gin.Run(s)
