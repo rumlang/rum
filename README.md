@@ -51,3 +51,39 @@ Free software environment for statistical computing
       (print 'ugly))) ; print "ugly"
 
 ```
+
+## Using gin as a Go package
+
+### Install
+
+```
+go get github.com/gin-lang/gin
+```
+
+### Example
+
+```golang
+package main
+
+import (
+	"bufio"
+	"strings"
+
+	"github.com/gin-lang/gin"
+)
+
+func main() {
+	const input = `
+(package main
+  (print 'Hello)
+)
+`
+	s := bufio.NewScanner(strings.NewReader(input))
+	gin := gin.New()
+	err := gin.Run(s)
+	if err != nil {
+		panic(err)
+	}
+}
+```
+
