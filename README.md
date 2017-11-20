@@ -1,6 +1,24 @@
 # gin (Go in numbers)
 Free software environment for statistical computing
 
+## Install
+
+```
+go install github.com/gin-lang/gin
+```
+
+## Run
+
+```
+gin
+```
+
+or
+
+```
+go run gin.go
+```
+
 ## Proposal syntax
 
 ```
@@ -34,8 +52,8 @@ Free software environment for statistical computing
       (var a (+ a 1)
       (print a)))
 
-  ; create if 
-  (if (= a 10)        ; if a is equal to 10 
+  ; create if
+  (if (= a 10)        ; if a is equal to 10
     (print 'Hello))   ; print Hello
 
   (if (= a 'good)     ; if a is equal to "good"
@@ -86,4 +104,3 @@ func main() {
 	}
 }
 ```
-
