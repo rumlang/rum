@@ -293,6 +293,7 @@ func If(ctx *Context, args ...parser.Value) parser.Value {
 	return ctx.MustEval(args[2])
 }
 
+// Lambda anonymous functions that are evaluated only when they are encountered in the program
 func Lambda(ctx *Context, args ...parser.Value) parser.Value {
 	if len(args) != 2 {
 		panic("Invalid arguments")
