@@ -214,7 +214,7 @@ func NewContext(parent *Context) *Context {
 	defaults := map[parser.Identifier]interface{}{
 		"package":  Package,
 		"array":    Internal(Array),
-		"var":      Internal(Define),
+		"var":      Internal(Var),
 		"if":       Internal(If),
 		"lambda":   Internal(Lambda),
 		"eval":     Internal(Eval),
@@ -261,7 +261,7 @@ func Package(values ...interface{}) interface{} {
 	return values[len(values)-1]
 }
 
-func Define(ctx *Context, args ...parser.Value) parser.Value {
+func Var(ctx *Context, args ...parser.Value) parser.Value {
 	if len(args) != 2 {
 		panic("Invalid arguments")
 	}
