@@ -73,7 +73,7 @@ import (
 )
 
 func main() {
-  const input = `
+	const input = `
 (package main
   (print 'Hello)
 )
