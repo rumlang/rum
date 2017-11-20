@@ -1,7 +1,3 @@
-// Package parser takes care of lexing & parsing following the grammer defined
-// in glop.y.
-// This file contains the lexer, taking care of extracting relevant tokens from
-// the provided input.
 package parser
 
 import (
@@ -90,7 +86,6 @@ func (l *lexer) advance() rune {
 	} else {
 		l.nextCol++
 	}
-
 	l.next = <-l.scan
 	return r
 }
@@ -112,7 +107,7 @@ func (l *lexer) stateIdentifier() stateFn {
 	var next stateFn
 	for next == nil {
 		r := l.peek()
-
+		
 		switch {
 		case r == '(':
 			next = l.stateOpen
@@ -123,7 +118,7 @@ func (l *lexer) stateIdentifier() stateFn {
 		case r == '"':
 			next = l.stateString
 		case r == '\'':
-			next = l.stateQuote
+			next = l.stateArray
 		case unicode.IsSpace(r):
 			next = l.stateSpace
 		case r == 0: // rune is 0 when scan is finished.
@@ -185,11 +180,11 @@ func (l *lexer) stateClose() stateFn {
 	return l.stateIdentifier
 }
 
-func (l *lexer) stateQuote() stateFn {
+func (l *lexer) stateArray() stateFn {
 	l.advance()
 	token := l.accept()
 	// TODO: check that it is the right character and fail otherwise.
-	token.id = tokQuote
+	token.id = tokArray
 	l.tokens <- token
 	return l.stateIdentifier
 }
@@ -213,7 +208,7 @@ func (l *lexer) stateComment() stateFn {
 }
 
 func (l *lexer) stateString() stateFn {
-	// Get the opening quote.
+	// Get the opening array.
 	l.advance()
 	s := ""
 	for l.peek() != '"' {
@@ -221,7 +216,7 @@ func (l *lexer) stateString() stateFn {
 
 		if r == '\\' {
 			// Just get the character after the backslash - good enough to catch
-			// escape quotes.
+			// escape arrays.
 			r = l.advance()
 		}
 
@@ -232,7 +227,7 @@ func (l *lexer) stateString() stateFn {
 		s += string(r)
 	}
 
-	// Get the last quote
+	// Get the last array
 	l.advance()
 	token := l.accept()
 	token.id = tokString

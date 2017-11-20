@@ -95,7 +95,7 @@ func TestParsingExpression(t *testing.T) {
 		"( ; )":        -1,
 		"(a ; b \n c)": 2,
 
-		// Test quote
+		// Test array
 		"(a ')":      -1,
 		"('a 'b c)":  3,
 		"('(a b) c)": 2,

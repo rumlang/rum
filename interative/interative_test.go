@@ -1,4 +1,4 @@
-package repl
+package interative
 
 import (
 	"os/user"

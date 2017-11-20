@@ -1,5 +1,3 @@
-// Package parser implements that lex&grammar of the language.
-// This file implements a (generic) topdown parser.
 package parser
 
 // Context is provided to the token function when the topdown parser is

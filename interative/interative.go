@@ -1,15 +1,15 @@
-package repl
+package interative
 
 import (
 	"fmt"
 	"os"
+	"io"
 	"os/user"
 	"strings"
 
-	"github.com/GeertJohan/go.linenoise"
-	log "github.com/golang/glog"
-	"github.com/palats/glop/parser"
-	glopRuntime "github.com/palats/glop/runtime"
+	"github.com/chzyer/readline"
+	"github.com/gin-lang/gin/parser"
+	ginRuntime "github.com/gin-lang/gin/runtime"
 )
 
 // ExpandFilename replace '~/' with the user home directory.
@@ -27,55 +27,68 @@ func ExpandFilename(s string, u *user.User) (string, error) {
 	return s, nil
 }
 
-// REPL starts a full interpreter, accepting glop code on its prompt.
-// If historyFilename is empty, no history is loaded/saved.
-func REPL(historyFilename string) error {
-	// Initialize history file
-	if historyFilename != "" {
-		fname, err := ExpandFilename(historyFilename, nil)
-		if err != nil {
-			return fmt.Errorf("%q is invalid: %v", historyFilename, err)
-		}
-
-		linenoise.LoadHistory(fname)
-		defer linenoise.SaveHistory(fname)
+func filterInput(r rune) (rune, bool) {
+	switch r {
+	// block CtrlZ feature
+	case readline.CharCtrlZ:
+		return r, false
 	}
+	return r, true
+}
+
+// REPL starts a full interpreter, accepting glop code on its prompt.
+func REPL() (err error) {
+	l, err := readline.NewEx(&readline.Config{
+		Prompt:          	">>> ",
+		HistoryFile:     	"~/.gin_history",
+		AutoComplete:    	readline.NewPrefixCompleter(),
+		InterruptPrompt: 	"^C",
+		EOFPrompt:       	"exit",
+		HistorySearchFold:   true,
+		FuncFilterInputRune: filterInput,
+	})
+	if err != nil {
+		return
+	}
+	defer l.Close()
 
 	// Prepare runtime environment
-	ctx := glopRuntime.NewContext(nil)
+	ctx := ginRuntime.NewContext(nil)
 	ctx.Set("exit", parser.NewAny(func() {
 		os.Exit(0)
 	}, nil))
 
-	// REPL main loop
-	for i := 0; ; i++ {
-		// Prompt
-		raw, err := linenoise.Line(fmt.Sprintf("In [%d]: ", i))
-		if err == linenoise.KillSignalError {
-			return nil
+	// log.Println(l.Stderr())
+	for {
+		line, err := l.Readline()
+		if err == readline.ErrInterrupt {
+			if len(line) == 0 {
+				break
+			} else {
+				continue
+			}
+		} else if err == io.EOF {
+			break
 		}
-		if len(strings.TrimSpace(raw)) == 0 {
+		
+		line = strings.TrimSpace(line)
+		if len(line) == 0 {
 			continue
-		}
-
-		if err := linenoise.AddHistory(raw); err != nil {
-			log.Error(err)
 		}
 
 		// Parsing
 		var out parser.Value
-		root, err := parser.Parse(parser.NewSource(raw))
+		root, err := parser.Parse(parser.NewSource(line))
 		if err == nil {
 			// Executing
 			out, err = ctx.TryEval(root)
-		}
-
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error [%d]: %v\n", i, err)
+		} else {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
 			continue
 		}
 
 		v := out.Value()
-		fmt.Printf("Out [%d]: <%T>%#+v\n", i, v, v)
+		fmt.Println(v)
 	}
+	return
 }

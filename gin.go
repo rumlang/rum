@@ -6,19 +6,9 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/palats/glop/parser"
-	"github.com/palats/glop/repl"
-	"github.com/palats/glop/runtime"
-)
-
-var (
-	historyFilename = flag.String(
-		"history_filename", "~/.glophistory",
-		"File to use for prompt history. '~/' is expanded to current user home "+
-			"directory. Set to empty string to disable history loading/saving.")
-	inputCode = flag.String(
-		"e", "",
-		"Execute the provided code. If equal to '-', execute code from stdin.")
+	"github.com/gin-lang/gin/parser"
+	"github.com/gin-lang/gin/interative"
+	"github.com/gin-lang/gin/runtime"
 )
 
 func main() {
@@ -30,14 +20,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	if len(flag.Args()) > 0 && *inputCode != "" {
-		fmt.Fprintf(os.Stderr, "A filename cannot be specified together with -e.\n")
-		os.Exit(1)
-	}
-
 	// Run REPL if nothing else is specified
-	if *inputCode == "" && len(flag.Args()) == 0 {
-		if err := repl.REPL(*historyFilename); err != nil {
+	if len(flag.Args()) == 0 {
+		if err := interative.REPL(); err != nil {
 			fmt.Fprintf(os.Stderr, err.Error())
 			os.Exit(1)
 		}
@@ -45,7 +30,7 @@ func main() {
 	}
 
 	// By default run the code from -e flag.
-	var input = *inputCode
+	var input = ""
 
 	if len(flag.Args()) > 0 {
 		// Get code from a file if specified

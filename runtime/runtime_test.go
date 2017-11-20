@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/palats/glop/parser"
+	"github.com/gin-lang/gin/parser"
 )
 
 func mustParse(s string) parser.Value {
@@ -20,8 +20,8 @@ func mustEval(s string) parser.Value {
 	return NewContext(nil).MustEval(mustParse(s))
 }
 
-func TestQuote(t *testing.T) {
-	n := mustEval("(quote (+ 1 2))").Value().([]parser.Value)
+func TestArray(t *testing.T) {
+	n := mustEval("(array (+ 1 2))").Value().([]parser.Value)
 	if len(n) != 3 {
 		t.Errorf("Expected 3 children, got: %v", n)
 	}
@@ -64,33 +64,31 @@ func TestValid(t *testing.T) {
 		"(>= 2 3)":           false,
 		"(>= 3.0 3.0)":       true,
 		"(>= 3.0 2.0)":       true,
-		// Test 'begin'
-		"(begin 1 (+ 1 1))":       int64(2),
-		"(begin)":                 nil,
-		"(begin (+ 1 2) (+ 3 4))": int64(7),
-		"(begin (print 1 2))":     nil,
-		// Test 'define'
-		"(begin (define a 5) a)":            int64(5),
-		"(begin (define a 5) (set! a 4) a)": int64(4),
+		// Test 'package'
+		"(package 1 (+ 1 1))":       int64(2),
+		"(package)":                 nil,
+		"(package (+ 1 2) (+ 3 4))": int64(7),
+		"(package (print 1 2))":     nil,
+		// Test 'var'
+		"(package (var a 5) a)":            int64(5),
+		"(package (var a 5) (var a 4) a)": int64(4),
 		// Test 'if'
 		"(if true 7)":    int64(7),
 		"(if false 7)":   nil,
 		"(if false 7 8)": int64(8),
 		// Test 'lambda'
-		"(begin (define d (lambda (n) (+ n n))) (d 3))": int64(6),
+		"(package (var d (lambda (n) (+ n n))) (d 3))": int64(6),
 		// Test that inner scopes are not override outer scope.
-		"(begin (define n 7) (define d (lambda (n) (+ n n))) (+ n (d 3)))": int64(13),
+		"(package (var n 7) (var d (lambda (n) (+ n n))) (+ n (d 3)))": int64(13),
 		// Test float
 		".3": float64(.3),
-		// Test car
-		"(car (quote (1 2 3)))": int64(1),
 		// Test length
-		"(length (quote (1 2 3)))": int64(3),
+		"(len (array (1 2 3)))": int64(3),
 		// Test string
 		`"plop"`:   "plop",
 		`"p\"lop"`: `p"lop`,
 		// Test eval
-		"(begin (set! a '(+ 1 2)) (eval a))": int64(3),
+		"(package (var a '(+ 1 2)) (eval a))": int64(3),
 	}
 
 	for input, expected := range valid {
@@ -103,12 +101,7 @@ func TestValid(t *testing.T) {
 
 func TestValidList(t *testing.T) {
 	valid := map[string][]interface{}{
-		// Test cons
-		"(cons 1 (quote (2 3)))":                                    []interface{}{int64(1), int64(2), int64(3)},
-		"(begin (define a (quote (1 2 3))) (cons (car a) (cdr a)))": []interface{}{int64(1), int64(2), int64(3)},
-		// Test cdr
-		"(cdr (quote (1 2 3)))": []interface{}{int64(2), int64(3)},
-		// Test single quote notation
+		// Test single array notation
 		"'(1 2)": []interface{}{int64(1), int64(2)},
 	}
 
@@ -136,8 +129,6 @@ func TestPanic(t *testing.T) {
 		"(+float64 1 2)",
 		"(*int64 1.0 2.0)",
 		"(*float64 1 2)",
-		"(cons 1 2)",
-		"(cons 1 (2 3))",
 		"(panic 10)",
 	}
 

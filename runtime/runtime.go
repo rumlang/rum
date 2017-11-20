@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/palats/glop/parser"
+	"github.com/gin-lang/gin/parser"
 )
 
 const (
@@ -212,28 +212,18 @@ func NewContext(parent *Context) *Context {
 	}
 
 	defaults := map[parser.Identifier]interface{}{
-		"begin":  Begin,
-		"quote":  Internal(Quote),
-		"define": Internal(Define),
-		"set!":   Internal(Define),
+		"package":  Package,
+		"array":  Internal(Array),
+		"var":    Internal(Define),
 		"if":     Internal(If),
 		"lambda": Internal(Lambda),
-
 		"eval":  Internal(Eval),
 		"panic": Panic,
-
-		"cons":   Cons,
-		"car":    Car,
-		"cdr":    Cdr,
-		"length": Length,
-
+		"len": Length,
 		"print": Print,
-
 		"type": Type,
-
 		"true":  true,
 		"false": false,
-
 		"+":        OpAdd,
 		"+int64":   OpAddInt64,
 		"+float64": OpAddFloat64,
@@ -257,14 +247,14 @@ func NewContext(parent *Context) *Context {
 	return c
 }
 
-func Quote(ctx *Context, args ...parser.Value) parser.Value {
+func Array(ctx *Context, args ...parser.Value) parser.Value {
 	if len(args) != 1 {
-		panic("Invalid number of arguments for quote")
+		panic("Invalid number of arguments for array")
 	}
 	return args[0]
 }
 
-func Begin(values ...interface{}) interface{} {
+func Package(values ...interface{}) interface{} {
 	if len(values) == 0 {
 		return nil
 	}
@@ -337,23 +327,6 @@ func Lambda(ctx *Context, args ...parser.Value) parser.Value {
 
 func Type(v interface{}) string {
 	return fmt.Sprintf("%T", v)
-}
-
-// Cons implements the [x]+y operator.
-func Cons(elt interface{}, tail []parser.Value) []parser.Value {
-	l := []parser.Value{parser.NewAny(elt, nil)}
-	l = append(l, tail...)
-	return l
-}
-
-// Car implements the x[0] operator.
-func Car(elt []parser.Value) interface{} {
-	return elt[0].Value()
-}
-
-// Cdr implements the x[1:] operator.
-func Cdr(elt []parser.Value) []parser.Value {
-	return elt[1:]
 }
 
 func Length(elt []parser.Value) int64 {

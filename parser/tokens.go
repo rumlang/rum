@@ -13,7 +13,7 @@ const (
 	tokInteger
 	tokFloat
 	tokString
-	tokQuote
+	tokArray
 )
 
 type tokenID int
@@ -34,8 +34,8 @@ func (t tokenID) String() string {
 		return "Float"
 	case tokString:
 		return "String"
-	case tokQuote:
-		return "Quote"
+	case tokArray:
+		return "Array"
 	default:
 		return fmt.Sprintf("Unknown[%d", t)
 	}
@@ -52,7 +52,7 @@ var tokenPriorities = map[tokenID]int{
 	tokInteger:    20,
 	tokFloat:      20,
 	tokString:     20,
-	tokQuote:      20,
+	tokArray:      20,
 }
 
 // tokenInfo give details about a token the lexer extracted - including
@@ -93,10 +93,10 @@ func (t tokenInfo) Nud(ctx Context) interface{} {
 		}
 		return []Value{NewAny(sublist, t.ref)}
 	// case tokClose: // Shoud never happen
-	case tokQuote:
+	case tokArray:
 		sublist := ctx.Expression(tokenPriorities[tokOpen]).([]Value)
-		quote := NewAny(Identifier("quote"), t.ref)
-		r := NewAny(append([]Value{quote}, sublist...), t.ref)
+		array := NewAny(Identifier("array"), t.ref)
+		r := NewAny(append([]Value{array}, sublist...), t.ref)
 		return []Value{r}
 	case tokIdentifier:
 		return []Value{NewAny(Identifier(t.value.(string)), t.ref)}
@@ -138,10 +138,10 @@ func (t tokenInfo) Led(ctx Context, left interface{}) interface{} {
 		}
 		return append(left.([]Value), NewAny(sublist, t.ref))
 	// case tokClose: // Should never happen.
-	case tokQuote:
+	case tokArray:
 		sublist := ctx.Expression(tokenPriorities[tokOpen]).([]Value)
-		quote := NewAny(Identifier("quote"), t.ref)
-		r := NewAny(append([]Value{quote}, sublist...), t.ref)
+		array := NewAny(Identifier("array"), t.ref)
+		r := NewAny(append([]Value{array}, sublist...), t.ref)
 		return append(left.([]Value), r)
 	case tokIdentifier:
 		return append(left.([]Value), NewAny(Identifier(t.value.(string)), t.ref))

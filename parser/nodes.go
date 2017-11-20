@@ -1,6 +1,3 @@
-// Package parser implements the glop parser.
-// This file implements the different type of values glop can manipulate
-// directly.
 package parser
 
 import (
