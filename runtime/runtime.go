@@ -247,6 +247,7 @@ func NewContext(parent *Context) *Context {
 	return c
 }
 
+// Array define single or multiple-dimension arrays using the make-array function
 func Array(ctx *Context, args ...parser.Value) parser.Value {
 	if len(args) != 1 {
 		panic("Invalid number of arguments for array")
@@ -254,6 +255,7 @@ func Array(ctx *Context, args ...parser.Value) parser.Value {
 	return args[0]
 }
 
+// Package begin scope
 func Package(values ...interface{}) interface{} {
 	if len(values) == 0 {
 		return nil
