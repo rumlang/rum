@@ -216,6 +216,7 @@ func NewContext(parent *Context) *Context {
 		"array":    Internal(Array),
 		"var":      Internal(Define),
 		"if":       Internal(If),
+		"def":      Internal(Def),
 		"lambda":   Internal(Lambda),
 		"eval":     Internal(Eval),
 		"panic":    Panic,
@@ -291,6 +292,43 @@ func If(ctx *Context, args ...parser.Value) parser.Value {
 	}
 
 	return ctx.MustEval(args[2])
+}
+
+// Def is a group of statements that together perform a task.
+func Def(ctx *Context, args ...parser.Value) parser.Value {
+	if len(args) != 3 {
+		panic("Invalid arguments")
+	}
+
+	id, ok := args[0].Value().(parser.Identifier)
+	if !ok {
+		panic("TODO")
+	}
+
+	params, ok := args[1].Value().([]parser.Value)
+	if !ok {
+		panic("TODO")
+	}
+	names := []parser.Identifier{}
+	for _, v := range params {
+		id, ok := v.Value().(parser.Identifier)
+		if !ok {
+			panic("TODO")
+		}
+		names = append(names, id)
+	}
+	implValue := args[2]
+	impl := func(implCtx *Context, args ...parser.Value) parser.Value {
+		if len(args) != len(names) {
+			panic("TODO")
+		}
+		nested := NewContext(implCtx)
+		for i, name := range names {
+			nested.Set(name, implCtx.MustEval(args[i]))
+		}
+		return nested.MustEval(implValue)
+	}
+	return ctx.Set(id, parser.NewAny(Internal(impl), nil))
 }
 
 // Lambda anonymous functions that are evaluated only when they are encountered in the program
