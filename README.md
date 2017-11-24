@@ -51,7 +51,7 @@ go run gin.go
   (print (area 10.0))
 
   ; create loops with for
-  (for (print 'hello)) ; will loop while expression or funcrion return false
+  (for (print 'hello)) ; will loop while expression or function return false
   (for area (10.0 20.0 30.0) ; will interact on the list elements
   (for (var a 1)
     (= a 10)
