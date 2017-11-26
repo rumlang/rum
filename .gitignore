@@ -10,5 +10,9 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
-# rum
+# ignore binaries
 rum
+debug
+
+# ignore vscode config dir
+.vscode
