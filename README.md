@@ -7,6 +7,15 @@
 
 Free software environment for statistical computing
 
+## History
+
+Idealized in GopherCon Brasil 2017 (reason of the language being written in Go), had the purpose of being virtual machine of CLISP (development for fun and the founder team enjoys functional programming), after seeing that there was already some parser of CLISP written in Go we had a initiative to make a language with syntax like CLISP but with some own paradigms (such as asynchronous processing using goroutine underneath, thus joining what we have best in the Go).
+
+## Why Rum?
+
+As the language was born in Canasvieiras (Florianópolis - Brazil) neighborhood in the seaside frequented by tourists having the pirate boat as a tourist attraction, we decided to give the name of the typical beverage of pirates for the language.
+
+
 ## Install
 
 ```
