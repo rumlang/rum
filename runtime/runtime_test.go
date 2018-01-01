@@ -2,8 +2,12 @@ package runtime
 
 import (
 	"fmt"
+	"math"
 	"reflect"
+	"strings"
 	"testing"
+
+	"math/rand"
 
 	"github.com/rumlang/rum/parser"
 )
@@ -201,4 +205,27 @@ func TestUnknownVariable(t *testing.T) {
 	if err == nil {
 		t.Fatalf("%q should have generated an error.", s)
 	}
+}
+
+func TestGoFunction(t *testing.T) {
+	c := NewContext(nil)
+
+	c.SetFn("rand", rand.Int63)
+	_, err := c.TryEval(mustParse("(rand)"))
+	if err != nil {
+		t.Fatalf("(rand) should have generated an error.", err)
+	}
+
+	c.SetFn("sin", math.Sin)
+	v, err := c.TryEval(mustParse("(sin 1.0)"))
+	if err != nil {
+		t.Fatalf("(rand) should have generated an error.", err)
+	}
+
+	c.SetFn("split", strings.Split)
+	v, err = c.TryEval(mustParse("(split \"1,2,3,4,5\" \",\" )"))
+	if err != nil {
+		t.Fatalf("(rand) should have generated an error.", err)
+	}
+	fmt.Println(v)
 }
