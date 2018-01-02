@@ -102,9 +102,28 @@ func (c *Context) Set(id parser.Identifier, v parser.Value) parser.Value {
 	return v
 }
 
-// SetFn an iten in parser function map
-func (c *Context) SetFn(id parser.Identifier, v interface{}) {
-	c.env[id] = parser.NewAny(v, nil)
+// SetFn an function in parser function map
+func (c *Context) SetFn(id parser.Identifier, v interface{}, adapters ...Adapter) {
+	f := func(values ...interface{}) reflect.Value {
+		args := values
+		var err error
+		for _, adapter := range adapters {
+			args, err = adapter(args...)
+			if err != nil {
+				panic(fmt.Sprint("Error in adapter", values[0], err))
+			}
+		}
+
+		vargs := []reflect.Value{}
+		for _, arg := range args {
+			vargs = append(vargs, reflect.ValueOf(arg))
+		}
+
+		result := reflect.ValueOf(v).Call(vargs)
+		return result[0]
+	}
+
+	c.env[id] = parser.NewAny(f, nil)
 }
 
 // dispatch takes the provided value, evaluates it based on the current content

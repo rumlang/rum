@@ -219,13 +219,56 @@ func TestGoFunction(t *testing.T) {
 	c.SetFn("sin", math.Sin)
 	v, err := c.TryEval(mustParse("(sin 1.0)"))
 	if err != nil {
-		t.Fatalf("(rand) should have generated an error.", err)
+		t.Fatalf("(sin 1.0) should have generated an error.", err)
 	}
 
 	c.SetFn("split", strings.Split)
 	v, err = c.TryEval(mustParse("(split \"1,2,3,4,5\" \",\" )"))
 	if err != nil {
+		t.Fatalf("(split \"1,2,3,4,5\" \",\" ) should have generated an error.", err)
+	}
+
+	fmt.Println(v)
+}
+
+func TestAdapterGoFunctions(t *testing.T) {
+	c := NewContext(nil)
+
+	c.SetFn("rand", rand.Int63, CheckArity(0))
+	_, err := c.TryEval(mustParse("(rand)"))
+	if err != nil {
 		t.Fatalf("(rand) should have generated an error.", err)
 	}
+
+	c.SetFn("sin", math.Sin, CheckArity(1), ParamToFloat64(0))
+	v, err := c.TryEval(mustParse("(sin 1.0)"))
+	if err != nil {
+		t.Fatalf("(sin 1.0) should have generated an error.", err)
+	}
+
+	v, err = c.TryEval(mustParse("(sin 2)"))
+	if err != nil {
+		t.Fatalf("(sin 2) should have generated an error.", err)
+	}
+
+	c.SetFn("randn", rand.Int63n, CheckArity(1), ParamToInt64(0))
+	v, err = c.TryEval(mustParse("(randn 100)"))
+	if err != nil {
+		t.Fatalf("(randn 100) should have generated an error.", err)
+	}
 	fmt.Println(v)
+
+	v, err = c.TryEval(mustParse("(randn 100.0)"))
+	if err != nil {
+		t.Fatalf("(randn 100.0) should have generated an error.", err)
+	}
+	fmt.Println(v)
+
+	c.SetFn("compare", strings.Compare, CheckArity(2))
+	v, err = c.TryEval(mustParse("(compare \"test\" \"test\")"))
+	if err != nil {
+		t.Fatalf("(compare \"test\" \"test\") should have generated an error.", err)
+	}
+	fmt.Println(v)
+
 }
