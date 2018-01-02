@@ -31,8 +31,7 @@ func ParamToFloat64(p int) Adapter {
 		case float64:
 			return values, nil
 		default:
-			panic(fmt.Sprintf("Unable to compare values of type %T", values[0]))
-			return []interface{}{}, errWrongNumberPar
+			return []interface{}{}, errParameterType
 		}
 	}
 }
@@ -47,8 +46,7 @@ func ParamToInt64(p int) Adapter {
 			values[p] = int64(v)
 			return values, nil
 		default:
-			panic(fmt.Sprintf("Unable to compare values of type %T", values[0]))
-			return []interface{}{}, errWrongNumberPar
+			return []interface{}{}, errParameterType
 		}
 	}
 }
