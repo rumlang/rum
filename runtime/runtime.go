@@ -102,6 +102,11 @@ func (c *Context) Set(id parser.Identifier, v parser.Value) parser.Value {
 	return v
 }
 
+// SetFn an iten in parser function map
+func (c *Context) SetFn(id parser.Identifier, v interface{}) {
+	c.env[id] = parser.NewAny(v, nil)
+}
+
 // dispatch takes the provided value, evaluates it based on the current content
 // of the context and returns the result. All errors are sent through panics.
 func (c *Context) dispatch(input parser.Value) (parser.Value, error) {
@@ -235,7 +240,7 @@ func NewContext(parent *Context) *Context {
 		"*":        OpMul,
 		"*int64":   OpMulInt64,
 		"*float64": OpMulFloat64,
-		"**":       OpPow,		
+		"**":       OpPow,
 		"==":       OpEqual,
 		"!=":       OpNotEqual,
 		"<":        OpLess,
