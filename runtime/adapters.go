@@ -1,17 +1,16 @@
 package runtime
 
-import (
-	"errors"
-	"fmt"
-)
+import "errors"
 
 var (
 	errWrongNumberPar = errors.New("Wrong number of parameters")
 	errParameterType  = errors.New("Error in parameter type")
 )
 
+//Adapter is an function type can be used to change/check params to registred golang functions
 type Adapter func(values ...interface{}) ([]interface{}, error)
 
+//CheckArity return an function to check if the arity of function call is n
 func CheckArity(n int) Adapter {
 	return func(values ...interface{}) ([]interface{}, error) {
 		if len(values) != n {
@@ -21,6 +20,7 @@ func CheckArity(n int) Adapter {
 	}
 }
 
+//ParamToFloat64 return an Adapter to convert the p nth param to float64 type
 func ParamToFloat64(p int) Adapter {
 	return func(values ...interface{}) ([]interface{}, error) {
 		switch values[p].(type) {
@@ -36,6 +36,7 @@ func ParamToFloat64(p int) Adapter {
 	}
 }
 
+//ParamToInt64 return an Adapter to convert the p nth param to int64 type
 func ParamToInt64(p int) Adapter {
 	return func(values ...interface{}) ([]interface{}, error) {
 		switch values[p].(type) {
