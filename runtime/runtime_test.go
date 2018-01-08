@@ -1,11 +1,15 @@
 package runtime
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"math"
+	"net/http"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"math/rand"
 
@@ -22,6 +26,16 @@ func mustParse(s string) parser.Value {
 
 func mustEval(s string) parser.Value {
 	return NewContext(nil).MustEval(mustParse(s))
+}
+
+//RunSExpressions execute in sequence the sexprs in exprs param using the Context c
+func RunSExpressions(c *Context, exprs []string, t *testing.T) {
+	for _, expr := range exprs {
+		_, err := c.TryEval(mustParse(expr))
+		if err != nil {
+			t.Fatalf(expr, err)
+		}
+	}
 }
 
 func TestArray(t *testing.T) {
@@ -211,64 +225,54 @@ func TestGoFunction(t *testing.T) {
 	c := NewContext(nil)
 
 	c.SetFn("rand", rand.Int63)
-	_, err := c.TryEval(mustParse("(rand)"))
-	if err != nil {
-		t.Fatalf("(rand) should have generated an error.", err)
-	}
-
 	c.SetFn("sin", math.Sin)
-	v, err := c.TryEval(mustParse("(sin 1.0)"))
-	if err != nil {
-		t.Fatalf("(sin 1.0) should have generated an error.", err)
-	}
-
 	c.SetFn("split", strings.Split)
-	v, err = c.TryEval(mustParse("(split \"1,2,3,4,5\" \",\" )"))
-	if err != nil {
-		t.Fatalf("(split \"1,2,3,4,5\" \",\" ) should have generated an error.", err)
-	}
 
-	fmt.Println(v)
+	exprs := []string{
+		"(rand)",
+		"(sin 1.0)",
+		"(sin 1.0)",
+		"(print(split \"1,2,3,4,5\" \",\" ))",
+	}
+	RunSExpressions(c, exprs, t)
 }
 
 func TestAdapterGoFunctions(t *testing.T) {
 	c := NewContext(nil)
 
-	c.SetFn("rand", rand.Int63, CheckArity(0))
-	_, err := c.TryEval(mustParse("(rand)"))
-	if err != nil {
-		t.Fatalf("(rand) should have generated an error.", err)
-	}
-
+	c.SetFn("rand/Rand", rand.Int63, CheckArity(0))
 	c.SetFn("sin", math.Sin, CheckArity(1), ParamToFloat64(0))
-	v, err := c.TryEval(mustParse("(sin 1.0)"))
-	if err != nil {
-		t.Fatalf("(sin 1.0) should have generated an error.", err)
-	}
-
-	v, err = c.TryEval(mustParse("(sin 2)"))
-	if err != nil {
-		t.Fatalf("(sin 2) should have generated an error.", err)
-	}
-
 	c.SetFn("randn", rand.Int63n, CheckArity(1), ParamToInt64(0))
-	v, err = c.TryEval(mustParse("(randn 100)"))
-	if err != nil {
-		t.Fatalf("(randn 100) should have generated an error.", err)
-	}
-	fmt.Println(v)
-
-	v, err = c.TryEval(mustParse("(randn 100.0)"))
-	if err != nil {
-		t.Fatalf("(randn 100.0) should have generated an error.", err)
-	}
-	fmt.Println(v)
-
 	c.SetFn("compare", strings.Compare, CheckArity(2))
-	v, err = c.TryEval(mustParse("(compare \"test\" \"test\")"))
-	if err != nil {
-		t.Fatalf("(compare \"test\" \"test\") should have generated an error.", err)
-	}
-	fmt.Println(v)
 
+	exprs := []string{
+		"(rand/Rand)",
+		"(sin 1.0)",
+		"(sin 2)",
+		"(randn 100)",
+		"(randn 100.0)",
+		"(compare \"test\" \"test\")",
+	}
+
+	RunSExpressions(c, exprs, t)
+}
+
+func TestInvoke(t *testing.T) {
+	c := NewContext(nil)
+
+	c.SetFn("now", time.Now, CheckArity(0))
+	c.SetFn("http/Get", http.Get, CheckArity(1))
+	c.SetFn("ioutil/ReadAll", ioutil.ReadAll, CheckArity(1))
+	c.SetFn("bytes/NewBuffer", bytes.NewBuffer, CheckArity(1))
+
+	exprs := []string{
+		"(let resp (http/Get \"http://www.google.com/robots.txt\"))",
+		"(. resp Status)",
+		"(let respbytes (ioutil/ReadAll (. resp Body)))",
+		"(let buf (bytes/NewBuffer respbytes))",
+		"(. buf String)",
+		"(print (. buf String))",
+	}
+
+	RunSExpressions(c, exprs, t)
 }
