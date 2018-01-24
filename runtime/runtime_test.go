@@ -301,3 +301,23 @@ func TestImmutable(t *testing.T) {
 		t.Fatalf("%q not should have generated a panic.", s)
 	}
 }
+
+func TestCoerce(t *testing.T) {
+	c := NewContext(nil)
+
+	c.SetFn("now", time.Now, CheckArity(0))
+	c.RegisterType((*time.Duration)(nil))
+	c.RegisterType((*time.Time)(nil))
+	c.RegisterType((*http.Transport)(nil))
+
+	exprs := []string{
+		"(let n (now))",
+		"(print n)",
+		`(print (coerce time.Duration 0) 
+		        (coerce time.Duration 10000000) 
+				(coerce time.Duration 1000000) 
+				(coerce time.Duration 100000))`,
+	}
+
+	RunSExpressions(c, exprs, t)
+}

@@ -75,8 +75,9 @@ type Internal func(*Context, ...parser.Value) parser.Value
 
 // Context contains details about the current execution frame.
 type Context struct {
-	parent *Context
-	env    map[parser.Identifier]parser.Value
+	parent       *Context
+	env          map[parser.Identifier]parser.Value
+	typeRegistry map[string]reflect.Type
 }
 
 // Get returns the content of the specified variable. It will automatically
@@ -128,6 +129,12 @@ func (c *Context) SetFn(id parser.Identifier, v interface{}, adapters ...Adapter
 	}
 
 	c.env[id] = parser.NewAny(f, nil)
+}
+
+//RegisterType register an new type in runtime. A nil or zero typed value must be the parameter
+func (c *Context) RegisterType(typedNil interface{}) {
+	t := reflect.TypeOf(typedNil).Elem()
+	c.typeRegistry[t.PkgPath()+"."+t.Name()] = t
 }
 
 // dispatch takes the provided value, evaluates it based on the current content
@@ -239,8 +246,9 @@ func (c *Context) MustEval(input parser.Value) parser.Value {
 // instance and load default parser funcrions
 func NewContext(parent *Context) *Context {
 	c := &Context{
-		parent: parent,
-		env:    make(map[parser.Identifier]parser.Value),
+		parent:       parent,
+		env:          make(map[parser.Identifier]parser.Value),
+		typeRegistry: make(map[string]reflect.Type),
 	}
 
 	if parent == nil {
@@ -253,6 +261,7 @@ func NewContext(parent *Context) *Context {
 			"lambda":   Internal(Lambda),
 			"eval":     Internal(Eval),
 			"for":      Internal(For),
+			"coerce":   Internal(Coerce),
 			".":        Internal(Invoke),
 			"import":   Internal(Import),
 			"panic":    Panic,
@@ -544,4 +553,19 @@ func Invoke(ctx *Context, args ...parser.Value) parser.Value {
 
 	panic("Method or field not found: '" + descriptor +
 		"' in type: " + reflect.ValueOf(obj).Type().String())
+}
+
+//Coerce returns the value v converted to type t
+func Coerce(ctx *Context, args ...parser.Value) parser.Value {
+	if len(args) < 2 {
+		panic("Invalid arguments")
+	}
+
+	name := args[0].String()
+	name = name[5 : len(name)-1]
+	obj := reflect.ValueOf(ctx.MustEval(args[1]).Value())
+
+	ret := obj.Convert(ctx.typeRegistry[name])
+
+	return parser.NewAny(ret, nil)
 }
