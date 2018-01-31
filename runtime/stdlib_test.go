@@ -2,10 +2,11 @@ package runtime
 
 import (
 	"fmt"
-	"github.com/rumlang/rum/parser"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/rumlang/rum/parser"
 )
 
 func checkSExprs(t *testing.T, firstParser string, valid map[string]interface{}) {
@@ -56,4 +57,12 @@ func TestStrings(t *testing.T) {
 		"(strings.NewReader \"0123456789\")":                   strings.NewReader("0123456789"),
 	}
 	checkSExprs(t, `(import "strings")`, valid)
+}
+
+func TestCSV(t *testing.T) {
+	valid := map[string]interface{}{
+		`(. (encoding/csv.NewReader (strings.NewReader "1,2,3,4")) ReadAll)`: [][]string{[]string{"1", "2", "3", "4"}},
+	}
+	checkSExprs(t, `(import "strings" 
+		                    "csv")`, valid)
 }

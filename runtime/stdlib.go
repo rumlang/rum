@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"encoding/csv"
 	"fmt"
 	"strings"
 )
@@ -26,11 +27,24 @@ func (l *StringLib) LoadLib(ctx *Context) {
 	ctx.SetFn("strings.NewReader", strings.NewReader, CheckArity(1))
 }
 
-func LoadStdLib(name string, ctx *Context) {
+// CSVLib struct
+type CSVLib struct{}
+
+// LoadLib function to StringLib struct
+func (l *CSVLib) LoadLib(ctx *Context) {
+	ctx.SetFn("encoding/csv.NewReader", csv.NewReader, CheckArity(1))
+	ctx.SetFn("encoding/csv.NewWriter", csv.NewWriter, CheckArity(1))
+}
+
+func loadStdLib(name string, ctx *Context) {
 	var stdLib StdLib
 	switch name {
 	case "strings":
 		stdLib = &StringLib{}
+		stdLib.LoadLib(ctx)
+		return
+	case "csv":
+		stdLib = &CSVLib{}
 		stdLib.LoadLib(ctx)
 		return
 	default:
