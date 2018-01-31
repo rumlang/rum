@@ -315,20 +315,15 @@ func Import(ctx *Context, args ...parser.Value) parser.Value {
 		panic("Invalid arguments")
 	}
 
-	var v parser.Value
-	var err error
-	for idx := range args {
-		packageName, ok := args[idx].Value().(string)
-		if !ok {
-			panic("invalid package name")
-		}
-		loadStdLib(packageName, ctx)
-		v, err = ctx.TryEval(args[idx])
-		if err != nil {
-			panic(err.Error())
-		}
+	packageName, ok := args[0].Value().(string)
+	if !ok {
+		panic("invalid package name")
 	}
-
+	LoadStdLib(packageName, ctx)
+	v, err := ctx.TryEval(args[0])
+	if err != nil {
+		panic(err.Error())
+	}
 	return v
 }
 
