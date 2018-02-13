@@ -5,7 +5,7 @@
 [![Documentation](https://godoc.org/github.com/rumlang/rum?status.svg)](http://godoc.org/github.com/rumlang/rum)
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/rumlang/rum/LICENSE)
 
-Free software environment for statistical computing
+Functional language, easily extensible and possible (Lua features with LISP syntax and functional) to be embarked on software Go!
 
 ## History
 
