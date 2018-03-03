@@ -45,7 +45,7 @@ func (e Error) Error() string {
 
 // stateFn is the prototype for function of the lexer state machine. They don't
 // take any parameter - data is shared through the object.
-type stateFn func() stateFn
+type stateFn func() (stateFn, error)
 
 // lexer extract the tokens seen in the input.
 type lexer struct {
@@ -103,7 +103,7 @@ func (l *lexer) accept() tokenInfo {
 }
 
 // stateIdentifier parses arbitrary strings & numbers.
-func (l *lexer) stateIdentifier() (next stateFn) {
+func (l *lexer) stateIdentifier() (next stateFn, err error) {
 	for next == nil {
 		r := l.peek()
 		switch {
@@ -138,15 +138,20 @@ func (l *lexer) stateIdentifier() (next stateFn) {
 	// Check the first rune to determine whether it is just an arbitrary
 	// identifier or a number. Anything starting with [+-.]?[0-9] is considered a
 	// number.
-	if (len(token.text) > 1 && (token.text[0] == '+' || token.text[0] == '-' || token.text[0] == '.') && unicode.IsDigit(token.text[1])) || unicode.IsDigit(token.text[0]) {
+	if (len(token.text) > 1 &&
+		(token.text[0] == '+' || token.text[0] == '-' || token.text[0] == '.') &&
+		unicode.IsDigit(token.text[1])) ||
+		unicode.IsDigit(token.text[0]) {
 		// Try first to parse it as an integer and if it does not work, try as a
 		// float. This is ugly and number management should probably be rewritten.
 		token.id = tokInteger
-		i, err := strconv.ParseInt(string(token.text), 10, 64)
+		var i int64
+		i, err = strconv.ParseInt(string(token.text), 10, 64)
 		if err != nil {
-			f, err := strconv.ParseFloat(string(token.text), 64)
+			var f float64
+			f, err = strconv.ParseFloat(string(token.text), 64)
 			if err != nil {
-				panic(err) // TODO
+				return
 			}
 			token.id = tokFloat
 			token.value = f
@@ -159,52 +164,52 @@ func (l *lexer) stateIdentifier() (next stateFn) {
 	return
 }
 
-func (l *lexer) stateOpen() stateFn {
+func (l *lexer) stateOpen() (stateFn, error) {
 	l.advance()
 	token := l.accept()
 	// TODO: check that it is the right character and fail otherwise.
 	token.id = tokOpen
 	l.tokens <- token
-	return l.stateIdentifier
+	return l.stateIdentifier, nil
 }
 
-func (l *lexer) stateClose() stateFn {
+func (l *lexer) stateClose() (stateFn, error) {
 	l.advance()
 	token := l.accept()
 	// TODO: check that it is the right character and fail otherwise.
 	token.id = tokClose
 	l.tokens <- token
-	return l.stateIdentifier
+	return l.stateIdentifier, nil
 }
 
-func (l *lexer) stateArray() stateFn {
+func (l *lexer) stateArray() (stateFn, error) {
 	l.advance()
 	token := l.accept()
 	// TODO: check that it is the right character and fail otherwise.
 	token.id = tokArray
 	l.tokens <- token
-	return l.stateIdentifier
+	return l.stateIdentifier, nil
 }
 
-func (l *lexer) stateSpace() stateFn {
+func (l *lexer) stateSpace() (stateFn, error) {
 	for unicode.IsSpace(l.peek()) {
 		l.advance()
 	}
 	// We don't emit anything for spaces.
 	l.accept()
-	return l.stateIdentifier
+	return l.stateIdentifier, nil
 }
 
-func (l *lexer) stateComment() stateFn {
+func (l *lexer) stateComment() (stateFn, error) {
 	for l.peek() != '\n' && l.peek() != 0 {
 		l.advance()
 	}
 	// We don't emit anything for comments.
 	l.accept()
-	return l.stateIdentifier
+	return l.stateIdentifier, nil
 }
 
-func (l *lexer) stateString() stateFn {
+func (l *lexer) stateString() (stateFn, error) {
 	// Get the opening array.
 	l.advance()
 	s := ""
@@ -230,18 +235,30 @@ func (l *lexer) stateString() stateFn {
 	token.id = tokString
 	token.value = s
 	l.tokens <- token
-	return l.stateIdentifier
+	return l.stateIdentifier, nil
 }
 
-func (l *lexer) stateEnd() stateFn {
-	return nil
+func (l *lexer) stateEnd() (stateFn, error) {
+	return nil, nil
 }
 
-func (l *lexer) run() {
-	for s := l.stateIdentifier(); s != nil; {
-		s = s()
+func (l *lexer) run() error {
+	s, err := l.stateIdentifier()
+	if err != nil {
+		return err
+	}
+	for {
+		s, err = s()
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		if s == nil {
+			break
+		}
 	}
 	close(l.tokens)
+	return nil
 }
 
 func (l *lexer) Next() Token {
@@ -273,6 +290,11 @@ func newLexer(src *Source) *lexer {
 	// make sure than the current token is properly initialized.
 	l.advance()
 	l.accept()
-	go l.run()
+	go func() {
+		err := l.run()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}()
 	return l
 }

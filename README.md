@@ -117,7 +117,7 @@ func main() {
 	vm := rum.New()
 	err := vm.Run(s)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
 }
 ```
