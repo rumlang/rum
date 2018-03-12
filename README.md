@@ -40,7 +40,7 @@ go run rum.go
 
 ## Proposal syntax
 
-```
+```clojure
 (package "main"
   ; load file on this code
   (load lerolero) ; ./lerolero.rum
