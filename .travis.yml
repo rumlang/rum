@@ -3,16 +3,18 @@ dist: trusty
 language: go
 
 os:
-    - linux
+  - linux
+  - windows
+  - osx
 
 go:
-  - 1.8.x
-  - 1.9.x
+  - 1.x
+  - master
   - tip
 
 matrix:
   allow_failures:
-    - go: tip 
+    - go: tip
 
 script:
-    - go test ./...
+  - go test ./...
