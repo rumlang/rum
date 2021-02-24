@@ -315,9 +315,9 @@ func TestCoerce(t *testing.T) {
 	exprs := []string{
 		"(let n (now))",
 		"(print n)",
-		`(print (coerce time.Duration 0) 
-		        (coerce time.Duration 10000000) 
-				(coerce time.Duration 1000000) 
+		`(print (coerce time.Duration 0)
+		        (coerce time.Duration 10000000)
+				(coerce time.Duration 1000000)
 				(coerce time.Duration 100000))`,
 	}
 

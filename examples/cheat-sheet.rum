@@ -15,16 +15,16 @@
   (print (area 100.0))
 
   ; Quote
-  (let plop (array (a b c))
+  (let plop (array (a b c)))
   (print plop)
 
   ; Eval
-  (let foo (array (+ 1 a))
+  (let foo (array (+ 1 a)))
   (let a 42)
   (print (eval foo))  ; prints 43
-  (let a 11)
+  ; (let a 11) ; not immutable support
   (print (eval foo))  ; prints 12
 
-  ; sub package
-  (package (print a))  ; create sub package and print let main package
+  ; create sub package and print let main package
+  (package "submain" (print a))
 )
