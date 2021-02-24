@@ -1,17 +1,17 @@
 (package "math"
   ; fatorial with lambda
-  (let lfactorial (lambda (n) 
-      (if (== n 0) 
-        1 
-        (* n (lfactorial (- n 1))))))
+  (let fac-lambda (lambda (n)
+      (if (== n 0)
+        1
+        (* n (fac-lambda (- n 1))))))
 
   ; fatorial with def function
-  (def factorial (n)
+  (def fac (n)
     (if (== n 0)
       1
-      (* n (factorial (- n 1)))))
-)
+      (* n (fac (- n 1)))))
 
-; Example
-(print "factorial" (factorial 5))
-(print "factorial with lambda" (lfactorial 5))
+  ; Example
+  (print "factorial" (fac 5))
+  (print "factorial with lambda" (fac-lambda 5))
+)
