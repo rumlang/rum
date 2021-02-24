@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/rumlang/rum/interative"
 	"github.com/rumlang/rum/parser"
@@ -34,9 +33,16 @@ func main() {
 	var input = ""
 	if len(flag.Args()) > 0 {
 		// Get code from a file if specified
-		scanner := bufio.NewScanner(strings.NewReader(flag.Args()[0]))
+		filepath := os.Args[1]
+		file, err := os.Open(filepath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "not found file %q: %v\n", filepath, err)
+			os.Exit(1)
+		}
+		defer file.Close()
+		scanner := bufio.NewScanner(file)
 		if err := scanner.Err(); err != nil {
-			fmt.Fprintf(os.Stderr, "unable to read %q: %v\n", flag.Args()[0], err)
+			fmt.Fprintf(os.Stderr, "unable to read %q: %v\n", filepath, err)
 			os.Exit(1)
 		}
 		// Scan the file and add lines to input
