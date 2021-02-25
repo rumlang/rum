@@ -15,26 +15,23 @@ Idealized in GopherCon Brasil 2017 (reason of the language being written in Go),
 
 As the language was born in Canasvieiras (Florianópolis - Brazil) neighborhood in the seaside frequented by tourists having the pirate boat as a tourist attraction, we decided to give the name of the typical beverage of pirates for the language.
 
-### Why another lisp?
-
-- https://github.com/rumlang/rum/issues/104
-
+**[Why another lisp?](https://github.com/rumlang/rum/issues/104)**
 
 ## Install
 
-```
+```sh
 go install github.com/rumlang/rum
 ```
 
 ## Run
 
-```
-rum
+```sh
+./rum
 ```
 
 or
 
-```
+```sh
 go run rum.go
 ```
 
@@ -89,35 +86,27 @@ go run rum.go
 
 ## Using rum as a Go package
 
-### Install
-
-```
-go get github.com/rumlang/rum
-```
-
-### Example
-
 ```golang
 package main
 
 import (
-	"bufio"
-	"strings"
+  "bufio"
+  "strings"
 
-	"github.com/rumlang/rum"
+  "github.com/rumlang/rum"
 )
 
 func main() {
-	const input = `
+  const input = `
 (package main
   (print 'Hello)
 )
 `
-	s := bufio.NewScanner(strings.NewReader(input))
-	vm := rum.New()
-	err := vm.Run(s)
-	if err != nil {
-		fmt.Println(err)
-	}
+  s := bufio.NewScanner(strings.NewReader(input))
+  vm := rum.New()
+  err := vm.Run(s)
+  if err != nil {
+    fmt.Println(err)
+  }
 }
 ```
