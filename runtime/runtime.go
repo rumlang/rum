@@ -458,6 +458,11 @@ func Print(args ...interface{}) {
 		}
 		fmt.Printf("%v", v)
 	}
+}
+
+// Println implements the print function.
+func Println(args ...interface{}) {
+	Print(args)
 	fmt.Printf("\n")
 }
 
