@@ -81,24 +81,6 @@ func OpMul(values ...interface{}) interface{} {
 	}
 }
 
-// OpMulInt64 implements '*int64' function.
-func OpMulInt64(values ...int64) int64 {
-	var total int64 = 1.0
-	for _, v := range values {
-		total *= v
-	}
-	return total
-}
-
-// OpMulFloat64 implements '*float64' function.
-func OpMulFloat64(values ...float64) float64 {
-	var total = 1.0
-	for _, v := range values {
-		total *= v
-	}
-	return total
-}
-
 // OpPow implements exponentiation '**' function.
 func OpPow(values ...float64) float64 {
 	if len(values) < 1 {

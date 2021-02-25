@@ -166,8 +166,6 @@ func TestPanic(t *testing.T) {
 	panics := []string{
 		"(6)",
 		"(+ 1 (2))",
-		"(*int64 1.0 2.0)",
-		"(*float64 1 2)",
 		"(panic 10)",
 	}
 
