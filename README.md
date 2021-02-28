@@ -1,6 +1,6 @@
-# rum
+# Rum Language - LISP dialect
 
-[![Build Status](https://travis-ci.org/rumlang/rum.svg?branch=master)](https://travis-ci.org/rumlang/rum)
+![Github Actions](https://github.com/rumlang/rum/actions/workflows/tests.yml/badge.svg?branch=main)
 [![Go Report Card](https://goreportcard.com/badge/github.com/rumlang/rum)](https://goreportcard.com/report/github.com/rumlang/rum)
 [![Documentation](https://godoc.org/github.com/rumlang/rum?status.svg)](http://godoc.org/github.com/rumlang/rum)
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/rumlang/rum/LICENSE)
@@ -35,56 +35,35 @@ or
 go run rum.go
 ```
 
-## Proposal syntax
+## Example
 
 ```clojure
 (package "main"
-  ; load file on this code
-  (load lerolero) ; ./lerolero.rum
+  (import
+    (str "strings")
+    csv)
 
-  ; import package lerolero and used methods
-  (import test lerolero.test) ; ./lerolero/test.rum
-  (print (test.Test))
+  ; Canonical example
+  (println "Hello, World!")
 
-  ; set lets
-  (let a 1)
-  (print (a))
-
-  ; create function
-  (def hi()
-    "Hello")
-  (print hi)
-
-  ; create function (by lambda)
+  ; Create a function, run it and print the result.
   (let area
     (lambda (r) (* 3.141592653 (* r r))))
-  (print (area 10.0))
+  (println (area 10.0))
 
-  ; create loops with for
-  (for (print "hello")) ; will loop while expression or function return false
-  (for area (10.0 20.0 30.0)) ; will interact on the list elements
-  (for (let a 1)
-    (== a 10)
-      (let a (+ a 1)
-      (print a)))
+  (def area(r)
+    (* 3.141592653 (* r r)))
+  (println (area 100.0))
 
-  ; create if
-  (if (== a 10)       ; if a is equal to 10
-    (print "Hello"))  ; print Hello
-
-  (if (== a "good")   ; if a is equal to "good"
-    (print "good")    ; print "good"
-    (print 'bad))     ; otherwise print "bad"
-
-  (if (== a "good")   ; if a is equal to "good"
-    (print "good")    ; print "good"
-    (if (== a "bad")  ; if not and is equal to "bad"
-      (print "bad")   ; print "bad"
-      (print "ugly")) ; otherwise print "ugly"
-
+  ;; use strings package with alias str
+  (println (str.Contains "rumlang" "rum"))
+  ;; use csv package by example
+  (println "csv read all:" (. (csv.NewReader (str.NewReader "1,2,3,4")) ReadAll))
+)
 ```
 
-## Using rum as a Go package
+
+### Using rum as a Go package
 
 ```golang
 package main
