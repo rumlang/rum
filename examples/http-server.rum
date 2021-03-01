@@ -1,0 +1,6 @@
+(package "main"
+  (import http)
+  (def home-handle(w, r)
+    (fprintf w "home starting server!"))
+  (http.handle-func "/" home-handle)
+  (http.listen-serve ":8080" nil))
